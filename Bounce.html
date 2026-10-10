@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Keeper’s Room</title>
+<style>
+body{margin:0;height:100vh;overflow:hidden;background:#070b18;color:#e8d9b0;font:16px Georgia,serif}
+.s{position:relative;height:100vh;background:radial-gradient(circle at 65% 40%,#13203a,#070b18 70%)}
+.f,.w,.sp,.k,.q{pointer-events:none}
+.f{position:absolute;inset:0;background:radial-gradient(circle at 30% 35%,rgba(255,255,255,.06),transparent 35%),radial-gradient(circle at 70% 60%,rgba(180,220,255,.05),transparent 40%);mix-blend-mode:screen}
+.w{position:absolute;top:9%;right:10%;width:16vmin;height:23vmin;border-radius:50%/70%;background:radial-gradient(#ffd98a,#b97a1c 62%,transparent);box-shadow:0 0 80px rgba(255,190,90,.4);filter:blur(1px);animation:p 5s alternate infinite}
+.b{position:absolute;top:16%;right:0;width:72vw;height:11vh;background:linear-gradient(to left,rgba(255,214,138,.22),transparent);transform-origin:right center;animation:s 8s alternate infinite}
+.sp{position:absolute;left:50%;top:48%;width:min(34vmin,260px);aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;background:conic-gradient(#0b2a5a,#7fd8ff,#123a7a,#bfefff,#061a3c);box-shadow:0 0 80px rgba(127,216,255,.35),inset 0 0 60px rgba(255,255,255,.25);animation:r 14s linear infinite}
+.k{position:absolute;left:14%;bottom:12%;width:14vmin;height:38vmin;background:linear-gradient(#0a0f1e,#1c2742 55%,transparent);border-radius:50%/60%;filter:blur(3px) drop-shadow(0 0 18px rgba(127,216,255,.2));opacity:.9}
+.k:before{content:"";position:absolute;top:-8%;left:25%;width:50%;height:14%;border-radius:50%;background:#1a243d;filter:blur(2px)}
+.q{position:absolute;bottom:6%;left:50%;transform:translateX(-50%);margin:0;letter-spacing:.12em;opacity:.78;text-shadow:0 0 12px #000}
+#g{position:absolute;inset:0;display:none}
+canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+.h,.t{position:absolute;text-shadow:0 0 14px #000;pointer-events:none}
+.h{top:18px;left:24px;letter-spacing:.14em}
+.t{bottom:20px;left:50%;transform:translateX(-50%);font-size:.85rem;opacity:.7}
+
+.btn{
+  position:absolute;
+  left:50%;
+  top:56%;
+  transform:translate(-50%, -50%);
+  padding:.9em 1.7em;
+  font:inherit;
+  font-size:1.2rem;
+  letter-spacing:.14em;
+  color:#071324;
+  background:linear-gradient(180deg,#dffbff,#7fd8ff);
+  border:none;
+  border-radius:999px;
+  box-shadow:0 0 26px rgba(127,216,255,.48), inset 0 0 0 2px rgba(255,255,255,.35);
+  cursor:pointer;
+  z-index:10;
+}
+
+.btn:hover{
+  transform:translate(-50%, -50%) scale(1.04);
+}
+
+.btn:active{
+  transform:translate(-50%, -50%) scale(.97);
+}
+
+.mbtn{
+  position:absolute;
+  top:16px; right:18px;
+  z-index:20;
+  width:44px; height:44px;
+  border-radius:50%;
+  background:rgba(7,11,24,.55);
+  color:#e8d9b0;
+  border:1px solid rgba(232,217,176,.4);
+  cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+}
+.mbtn:hover{ box-shadow:0 0 18px rgba(232,217,176,.3) }
+.mbtn svg{ width:22px; height:22px; display:block }
+
+@keyframes p{from{opacity:.75}to{opacity:1}}
+@keyframes s{from{transform:rotate(-6deg)}to{transform:rotate(8deg)}}
+@keyframes r{to{transform:translate(-50%,-50%) rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="s" id="scene">
+  <div class="f"></div>
+  <div class="w"></div>
+  <div class="b"></div>
+  <div class="sp"></div>
+  <div class="k"></div>
+  <p class="q">The memory turned, keeping every moment from the tide.</p>
+
+  <button id="musicBtn" class="mbtn" title="Toggle music (M)" aria-label="Toggle background music">
+    <svg class="on" viewBox="0 0 24 24"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z" fill="currentColor"/></svg>
+    <svg class="off" viewBox="0 0 24 24" style="display:none"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z" fill="currentColor"/><line x1="4" y1="21" x2="20" y2="5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+  </button>
+
+  <button id="startBtn" class="btn">Begin</button>
+
+  <div id="g">
+    <canvas id="c"></canvas>
+    <div class="h" id="u"></div>
+    <div class="t" id="m">press Enter to begin</div>
+  </div>
+</div>
+<script>
+const scene = document.getElementById('scene');
+const game = document.getElementById('g');
+const c = document.getElementById('c');
+const x = c.getContext('2d');
+const u = document.getElementById('u');
+const m = document.getElementById('m');
+const startBtn = document.getElementById('startBtn');
+
+// ---------- Audio: Web Audio API, no external files ----------
+let AC = null, sfxOut = null, musicVol = null, musicOn = true;
+const mBtn = document.getElementById('musicBtn');
+const mIcoOn = mBtn.querySelector('.on'), mIcoOff = mBtn.querySelector('.off');
+
+function audioInit() {
+  if (!AC) {
+    AC = new (window.AudioContext || window.webkitAudioContext)();
+    const master = AC.createGain();
+    master.gain.value = .85;
+    master.connect(AC.destination);
+
+    sfxOut = AC.createGain();
+    sfxOut.gain.value = .6;
+    sfxOut.connect(master);
+
+    musicVol = AC.createGain();
+    musicVol.gain.value = musicOn ? 1 : 0;
+    musicVol.connect(master);
+
+    const bus = AC.createGain();
+    MUS.bus = bus;
+    bus.connect(musicVol);
+    const dly = AC.createDelay(1);        // gentle echo for space
+    dly.delayTime.value = .42;
+    const fb = AC.createGain(), wet = AC.createGain();
+    fb.gain.value = .38;
+    wet.gain.value = .5;
+    bus.connect(dly);
+    dly.connect(fb); fb.connect(dly);
+    dly.connect(wet); wet.connect(musicVol);
+  }
+  if (AC.state === 'suspended') AC.resume();
+}
+
+const mtof = n => 440 * Math.pow(2, (n - 69) / 12);
+
+function tone(f0, f1, t, dur, type, vol, dest) {
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = type;
+  o.frequency.setValueAtTime(Math.max(30, f0), t);
+  if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(Math.max(30, f1), t + dur);
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(.0008, t + dur);
+  o.connect(g);
+  g.connect(dest || sfxOut);
+  o.start(t);
+  o.stop(t + dur + .05);
+}
+
+function sBounce() {
+  if (!AC) return;
+  const t = AC.currentTime, f = rn(430, 640);
+  tone(f * 1.8, f, t, .16, 'sine', .3);
+  tone(f * 3.2, f * 1.6, t, .07, 'triangle', .09);
+}
+
+function sLose() {
+  if (!AC) return;
+  const t = AC.currentTime;
+  const o = AC.createOscillator(), g = AC.createGain(), flt = AC.createBiquadFilter();
+  flt.type = 'lowpass';
+  flt.frequency.setValueAtTime(900, t);
+  flt.frequency.exponentialRampToValueAtTime(120, t + .8);
+  o.type = 'sawtooth';
+  o.frequency.setValueAtTime(240, t);
+  o.frequency.exponentialRampToValueAtTime(52, t + .8);
+  g.gain.setValueAtTime(.3, t);
+  g.gain.exponentialRampToValueAtTime(.0008, t + .9);
+  o.connect(flt); flt.connect(g); g.connect(sfxOut);
+  o.start(t); o.stop(t + 1);
+  tone(92, 46, t, .5, 'sine', .3);
+}
+
+function sStart() {
+  if (!AC) return;
+  const t = AC.currentTime;
+  tone(660, 660, t, .3, 'sine', .2);
+  tone(880, 880, t + .14, .45, 'sine', .18);
+}
+
+function sMile() {
+  if (!AC) return;
+  const t = AC.currentTime;
+  tone(988, 988, t, .35, 'sine', .12);
+  tone(1319, 1319, t + .12, .4, 'sine', .1);
+}
+
+// --- background music: generative ambient loop (Am - F - C - G) ---
+const EIGHTH = 60 / 74 / 2;
+const CHORDS = [
+  { t: [57, 60, 64], b: 45 },
+  { t: [53, 57, 60], b: 41 },
+  { t: [55, 60, 64], b: 48 },
+  { t: [55, 59, 62], b: 43 }
+];
+const MUS = { step: 0, next: 0, started: false, bus: null };
+
+function pad(notes, t) {
+  const dur = EIGHTH * 8;
+  for (const n of notes) {
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.type = 'triangle';
+    o.frequency.value = mtof(n);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(.05, t + 1.2);
+    g.gain.setValueAtTime(.05, t + dur - 1.4);
+    g.gain.linearRampToValueAtTime(0, t + dur);
+    o.connect(g);
+    g.connect(MUS.bus);
+    o.start(t);
+    o.stop(t + dur + .1);
+  }
+}
+
+function musStep(step, t) {
+  const ch = CHORDS[((step / 8) | 0) % CHORDS.length];
+  if (step % 8 === 0) {
+    pad(ch.t, t);
+    tone(mtof(ch.b), mtof(ch.b), t, EIGHTH * 7.5, 'sine', .1, MUS.bus);
+  } else if (step % 2 === 0) {
+    const pool = [ch.t[0] + 12, ch.t[1] + 12, ch.t[2] + 12, ch.t[2] + 24];
+    const n = pool[(rn(0, 3)) | 0];
+    tone(mtof(n), mtof(n), t, .5, 'sine', .07, MUS.bus);
+  }
+}
+
+function musTick() {
+  if (!AC) return;
+  const now = AC.currentTime;
+  if (MUS.next < now - .25) MUS.next = now + .08;   // resync after a stall
+  while (MUS.next < now + .16) {
+    musStep(MUS.step, Math.max(MUS.next, now));
+    MUS.step = (MUS.step + 1) % (CHORDS.length * 8);
+    MUS.next += EIGHTH;
+  }
+}
+setInterval(musTick, 40);
+
+function setMusic(on) {
+  musicOn = on;
+  mBtn.classList.toggle('off', !on);
+  mIcoOn.style.display = on ? '' : 'none';
+  mIcoOff.style.display = on ? 'none' : '';
+  if (AC && musicVol) musicVol.gain.setTargetAtTime(on ? 1 : 0, AC.currentTime, .08);
+}
+
+mBtn.addEventListener('click', () => { audioInit(); setMusic(!musicOn); mBtn.blur(); });
+
+let W, H, play = false, cam = 0, best = 0, nextY = 0, last = 0, px = null, L = false, R = false, mile = 0;
+const P = { x: 0, y: 0, vx: 0, vy: 0, r: 14 };
+let pl = [], pt = [], spawnX = 0;
+
+// Fairer tuning:
+// - stronger bounce
+// - slightly lower gravity
+// - wider platforms
+// - smaller vertical gaps
+const G = 1300;
+const B = -700;
+const A = 3200;
+const MV = 420;
+const PW = 130;
+const PH = 14;
+
+const GAP_MIN = 66;
+const GAP_MAX = 92;
+const REACH = 175;
+const TERMINAL = 920;
+
+function rs() {
+  W = c.width = scene.clientWidth;
+  H = c.height = scene.clientHeight;
+}
+addEventListener('resize', rs);
+rs();
+
+const rn = (a, b) => a + Math.random() * (b - a);
+const pf = (x, y) => ({ x: x - PW / 2, y, w: PW, h: PH, c: `hsl(${rn(190, 215)} 70% 62%)` });
+
+function burst(a, b, n, col) {
+  for (let i = 0; i < n; i++) {
+    const t = rn(0, 7), v = rn(50, 240);
+    pt.push({ x: a, y: b, vx: Math.cos(t) * v, vy: Math.sin(t) * v - 80, l: rn(.3, .7), m: .7, r: rn(1.5, 4), c: col });
+  }
+}
+
+function nextPlatform(y) {
+  const margin = 26;
+  const minX = PW / 2 + margin;
+  const maxX = W - PW / 2 - margin;
+
+  if (maxX <= minX) {
+    spawnX = W / 2;
+    return pf(W / 2, y);
+  }
+
+  // Keep each new platform horizontally reachable from the previous one.
+  const maxOff = Math.min(REACH, Math.max(70, (maxX - minX) / 2));
+  let nx = spawnX + rn(-maxOff, maxOff);
+  nx = Math.max(minX, Math.min(maxX, nx));
+
+  spawnX = nx;
+  return pf(nx, y);
+}
+
+function start() {
+  P.x = W / 2;
+
+  const firstY = H * .78;
+  P.y = firstY - P.r;
+  P.vx = 0;
+  P.vy = B;
+
+  cam = best = mile = 0;
+  spawnX = W / 2;
+  pl = [pf(W / 2, firstY)];
+  pt = [];
+  nextY = firstY;
+
+  while (nextY > -H) {
+    nextY -= rn(GAP_MIN, GAP_MAX);
+    pl.push(nextPlatform(nextY));
+  }
+
+  play = true;
+  px = null;
+  game.style.display = 'block';
+  startBtn.style.display = 'none';
+  startBtn.blur();
+
+  u.textContent = 'DEPTH 0';
+  m.textContent = '← → steer · R restart · M music';
+
+  audioInit();
+  if (!MUS.started) { MUS.started = true; MUS.next = AC.currentTime + .15; }
+  sStart();
+}
+
+function end() {
+  play = false;
+  burst(P.x, P.y, 36, '#ffcf7a');
+  sLose();
+
+  u.textContent = `LOST — DEPTH ${best}`;
+  startBtn.textContent = 'Try Again';
+  startBtn.style.display = 'block';
+  m.textContent = 'the tide keeps what you remember';
+}
+
+function up(dt) {
+  if (!play) return;
+
+  const py = P.y;
+  let ax = (L ? -A : 0) + (R ? A : 0);
+
+  if (px != null) {
+    ax += Math.max(-A, Math.min(A, (px - P.x) * 18));
+  }
+
+  P.vx = Math.max(-MV, Math.min(MV, (P.vx + ax * dt) * .92));
+  P.x += P.vx * dt;
+
+  if (P.x < -P.r) P.x = W + P.r;
+  if (P.x > W + P.r) P.x = -P.r;
+
+  P.vy += G * dt;
+  P.vy = Math.min(P.vy, TERMINAL);
+  P.y += P.vy * dt;
+
+  const t = H * .42;
+  if (P.y < cam + t) cam += P.y - (cam + t);
+
+  best = Math.max(best, Math.floor(-cam / 12));
+  u.textContent = 'DEPTH ' + best;
+  if (Math.floor(best / 10) > mile) { mile = Math.floor(best / 10); sMile(); }
+
+  while (nextY > cam - H * 1.3) {
+    nextY -= rn(GAP_MIN, GAP_MAX);
+    pl.push(nextPlatform(nextY));
+  }
+
+  pl = pl.filter(p => p.y - cam < H + 220);
+
+  if (P.vy > 0) {
+    for (const p of pl) {
+      const sy = p.y - cam;
+      if (sy < -40 || sy > H + 40) continue;
+
+      const prevBottom = py + P.r;
+      const newBottom = P.y + P.r;
+
+      if (
+        P.x + P.r > p.x &&
+        P.x - P.r < p.x + p.w &&
+        prevBottom <= p.y + 8 &&
+        newBottom >= p.y
+      ) {
+        P.y = p.y - P.r;
+        P.vy = B;
+        burst(P.x, p.y, 10, '#9fe8ff');
+        sBounce();
+        break;
+      }
+    }
+  }
+
+  for (const q of pt) {
+    q.vy += G * .22 * dt;
+    q.x += q.vx * dt;
+    q.y += q.vy * dt;
+    q.l -= dt;
+  }
+  pt = pt.filter(q => q.l > 0);
+
+  if (P.y - cam > H + 70) end();
+}
+
+function dr() {
+  x.clearRect(0, 0, W, H);
+
+  for (const p of pl) {
+    const y = p.y - cam;
+    if (y < -30 || y > H + 30) continue;
+
+    x.save();
+    x.shadowColor = '#7fd8ff';
+    x.shadowBlur = 16;
+    x.fillStyle = p.c;
+    x.fillRect(p.x, y, p.w, p.h);
+    x.restore();
+  }
+
+  for (const q of pt) {
+    const y = q.y - cam;
+    if (y < -20 || y > H + 20) continue;
+
+    x.globalAlpha = Math.max(0, q.l / q.m);
+    x.fillStyle = q.c;
+    x.beginPath();
+    x.arc(q.x, y, q.r, 0, 7);
+    x.fill();
+  }
+  x.globalAlpha = 1;
+
+  const y = P.y - cam;
+  x.save();
+  x.shadowColor = '#bfefff';
+  x.shadowBlur = 26;
+
+  const gr = x.createRadialGradient(P.x, y - 4, 2, P.x, y, P.r);
+  gr.addColorStop(0, '#fff');
+  gr.addColorStop(.55, '#9fdcff');
+  gr.addColorStop(1, '#23569e');
+
+  x.fillStyle = gr;
+  x.beginPath();
+  x.arc(P.x, y, P.r, 0, 7);
+  x.fill();
+  x.restore();
+}
+
+function loop(t) {
+  const dt = Math.min((t - last) / 1000, .035);
+  last = t;
+  up(dt);
+  dr();
+  requestAnimationFrame(loop);
+}
+
+addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !play) start();
+  if (e.key === 'r' || e.key === 'R') start();
+  if (e.key === 'm' || e.key === 'M') { audioInit(); setMusic(!musicOn); }
+  if (e.key === 'ArrowLeft' || e.key === 'a') L = true;
+  if (e.key === 'ArrowRight' || e.key === 'd') R = true;
+});
+
+addEventListener('keyup', e => {
+  if (e.key === 'ArrowLeft' || e.key === 'a') L = false;
+  if (e.key === 'ArrowRight' || e.key === 'd') R = false;
+});
+
+c.addEventListener('pointerdown', e => {
+  if (!play) {
+    start();
+    return;
+  }
+  const r = c.getBoundingClientRect();
+  px = e.clientX - r.left;
+});
+
+c.addEventListener('pointermove', e => {
+  if (e.buttons > 0 || e.pointerType === 'touch') {
+    const r = c.getBoundingClientRect();
+    px = e.clientX - r.left;
+  }
+});
+
+c.addEventListener('pointerup', () => px = null);
+
+startBtn.addEventListener('click', () => {
+  if (!play) start();
+});
+
+requestAnimationFrame(t => {
+  last = t;
+  loop(t);
+});
+</script>
+</body>
+</html>
