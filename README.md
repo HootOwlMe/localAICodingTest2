@@ -4,7 +4,7 @@ A tiny endless bouncer — one HTML file, zero dependencies.
 
 Bounce up an infinite tower of glowing platforms and see how deep the tide takes you. Every sound is synthesized live in your browser with the Web Audio API; there are no assets to load.
 
-![screenshot](docs/screenshot.png) <!-- optional: drop a screenshot at docs/screenshot.png -->
+![screenshot](screenshot.png) <!-- optional: drop a screenshot at docs/screenshot.png -->
 
 ## Play it
 
