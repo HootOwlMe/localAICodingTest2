@@ -8,7 +8,7 @@ Bounce up an infinite tower of glowing platforms and see how deep the tide takes
 
 ## Play it
 
-No build step. Just open [`Bounce.html`](./Bounce.html) in any modern browser (desktop or mobile).
+No build step. Just open [`index.html`](./index.html) in any modern browser (desktop or mobile).
 
 Or, if you want a local URL:
 
