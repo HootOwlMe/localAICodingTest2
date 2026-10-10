@@ -373,7 +373,7 @@ function up(dt) {
 
   best = Math.max(best, Math.floor(-cam / 12));
   u.textContent = 'DEPTH ' + best;
-  if (Math.floor(best / 10) > mile) { mile = Math.floor(best / 10); sMile(); }
+  if (Math.floor(best / 100) > mile) { mile = Math.floor(best / 100); sMile(); }
 
   while (nextY > cam - H * 1.3) {
     nextY -= rn(GAP_MIN, GAP_MAX);
