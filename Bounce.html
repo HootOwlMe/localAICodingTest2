@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Keeper’s Room</title>
+<style>
+body{margin:0;height:100vh;overflow:hidden;background:#070b18;color:#e8d9b0;font:16px Georgia,serif;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+.s{position:relative;height:100vh;background:radial-gradient(circle at 65% 40%,#13203a,#070b18 70%)}
+.f,.w,.sp,.k,.q{pointer-events:none}
+.f{position:absolute;inset:0;background:radial-gradient(circle at 30% 35%,rgba(255,255,255,.06),transparent 35%),radial-gradient(circle at 70% 60%,rgba(180,220,255,.05),transparent 40%);mix-blend-mode:screen}
+.w{position:absolute;top:9%;right:10%;width:16vmin;height:23vmin;border-radius:50%/70%;background:radial-gradient(#ffd98a,#b97a1c 62%,transparent);box-shadow:0 0 80px rgba(255,190,90,.4);filter:blur(1px);animation:p 5s alternate infinite}
+.b{position:absolute;top:16%;right:0;width:72vw;height:11vh;background:linear-gradient(to left,rgba(255,214,138,.22),transparent);transform-origin:right center;animation:s 8s alternate infinite}
+.sp{position:absolute;left:50%;top:48%;width:min(34vmin,260px);aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;background:conic-gradient(#0b2a5a,#7fd8ff,#123a7a,#bfefff,#061a3c);box-shadow:0 0 80px rgba(127,216,255,.35),inset 0 0 60px rgba(255,255,255,.25);animation:r 14s linear infinite}
+.k{position:absolute;left:14%;bottom:12%;width:14vmin;height:38vmin;background:linear-gradient(#0a0f1e,#1c2742 55%,transparent);border-radius:50%/60%;filter:blur(3px) drop-shadow(0 0 18px rgba(127,216,255,.2));opacity:.9}
+.k:before{content:"";position:absolute;top:-8%;left:25%;width:50%;height:14%;border-radius:50%;background:#1a243d;filter:blur(2px)}
+.q{position:absolute;bottom:6%;left:50%;transform:translateX(-50%);margin:0;letter-spacing:.12em;opacity:.78;text-shadow:0 0 12px #000}
+#g{position:absolute;inset:0;display:none}
+canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+.h,.t{position:absolute;text-shadow:0 0 14px #000;pointer-events:none}
+.h{top:18px;left:24px;letter-spacing:.14em}
+.t{bottom:20px;left:50%;transform:translateX(-50%);font-size:.85rem;opacity:.7}
+
+.btn{
+  position:absolute;
+  left:50%;
+  top:56%;
+  transform:translate(-50%, -50%);
+  padding:.9em 1.7em;
+  font:inherit;
+  font-size:1.2rem;
+  letter-spacing:.14em;
+  color:#071324;
+  background:linear-gradient(180deg,#dffbff,#7fd8ff);
+  border:none;
+  border-radius:999px;
+  box-shadow:0 0 26px rgba(127,216,255,.48), inset 0 0 0 2px rgba(255,255,255,.35);
+  cursor:pointer;
+  z-index:10;
+}
+
+.btn:hover{
+  transform:translate(-50%, -50%) scale(1.04);
+}
+
+.btn:active{
+  transform:translate(-50%, -50%) scale(.97);
+}
+
+.mbtn{
+  position:absolute;
+  top:16px; right:18px;
+  z-index:20;
+  width:44px; height:44px;
+  border-radius:50%;
+  background:rgba(7,11,24,.55);
+  color:#e8d9b0;
+  border:1px solid rgba(232,217,176,.4);
+  cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+}
+.mbtn:hover{ box-shadow:0 0 18px rgba(232,217,176,.3) }
+.mbtn svg{ width:22px; height:22px; display:block }
+
+@keyframes p{from{opacity:.75}to{opacity:1}}
+@keyframes s{from{transform:rotate(-6deg)}to{transform:rotate(8deg)}}
+@keyframes r{to{transform:translate(-50%,-50%) rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="s" id="scene">
+  <div class="f"></div>
+  <div class="w"></div>
+  <div class="b"></div>
+  <div class="sp"></div>
+  <div class="k"></div>
+  <p class="q">The memory turned, keeping every moment from the tide.</p>
+
+  <button id="musicBtn" class="mbtn" title="Toggle music (M)" aria-label="Toggle background music">
+    <svg class="on" viewBox="0 0 24 24"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z" fill="currentColor"/></svg>
+    <svg class="off" viewBox="0 0 24 24" style="display:none"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z" fill="currentColor"/><line x1="4" y1="21" x2="20" y2="5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+  </button>
+
+  <button id="startBtn" class="btn">Begin</button>
+
+  <div id="g">
+    <canvas id="c"></canvas>
+    <div class="h" id="u"></div>
+    <div class="t" id="m">press Enter to begin</div>
+  </div>
+</div>
+<script>
+const scene = document.getElementById('scene');
+const game = document.getElementById('g');
+const c = document.getElementById('c');
+const x = c.getContext('2d');
+const u = document.getElementById('u');
+const m = document.getElementById('m');
+const startBtn = document.getElementById('startBtn');
+const elF = scene.querySelector('.f'), elW = scene.querySelector('.w'), elB = scene.querySelector('.b'),
+      elSp = scene.querySelector('.sp'), elK = scene.querySelector('.k'), qEl = scene.querySelector('.q');
+
+// ---------- Audio: Web Audio API, no external files ----------
+let AC = null, sfxOut = null, musicVol = null, musicOn = true;
+const mBtn = document.getElementById('musicBtn');
+const mIcoOn = mBtn.querySelector('.on'), mIcoOff = mBtn.querySelector('.off');
+
+function audioInit() {
+  if (!AC) {
+    AC = new (window.AudioContext || window.webkitAudioContext)();
+    const master = AC.createGain();
+    master.gain.value = .85;
+    master.connect(AC.destination);
+
+    sfxOut = AC.createGain();
+    sfxOut.gain.value = .6;
+    sfxOut.connect(master);
+
+    musicVol = AC.createGain();
+    musicVol.gain.value = musicOn ? 1 : 0;
+    musicVol.connect(master);
+
+    const bus = AC.createGain();
+    MUS.bus = bus;
+    bus.connect(musicVol);
+    const dly = AC.createDelay(1);        // gentle echo for space
+    dly.delayTime.value = .42;
+    const fb = AC.createGain(), wet = AC.createGain();
+    fb.gain.value = .38;
+    wet.gain.value = .5;
+    bus.connect(dly);
+    dly.connect(fb); fb.connect(dly);
+    dly.connect(wet); wet.connect(musicVol);
+  }
+  if (AC.state === 'suspended') AC.resume();
+}
+
+const mtof = n => 440 * Math.pow(2, (n - 69) / 12);
+
+function tone(f0, f1, t, dur, type, vol, dest) {
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = type;
+  o.frequency.setValueAtTime(Math.max(30, f0), t);
+  if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(Math.max(30, f1), t + dur);
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(.0008, t + dur);
+  o.connect(g);
+  g.connect(dest || sfxOut);
+  o.start(t);
+  o.stop(t + dur + .05);
+}
+
+function sBounce() {
+  if (!AC) return;
+  const t = AC.currentTime, f = rn(430, 640);
+  tone(f * 1.8, f, t, .16, 'sine', .3);
+  tone(f * 3.2, f * 1.6, t, .07, 'triangle', .09);
+}
+
+function sSpring() {
+  if (!AC) return;
+  const t = AC.currentTime, f = rn(300, 380);
+  tone(f, f * 2.7, t, .32, 'sine', .34);          // rising boing
+  tone(f * 1.5, f * 3.6, t + .02, .2, 'triangle', .12);
+}
+
+function sSpeed() {
+  if (!AC) return;
+  const t = AC.currentTime;
+  tone(240, 720, t, .5, 'sawtooth', .16);      // rising "everything quickens" sweep
+  tone(360, 1080, t + .05, .4, 'triangle', .1);
+}
+
+function sShot() {
+  if (!AC) return;
+  const t = AC.currentTime;
+  tone(880, 220, t, .16, 'square', .13);        // short pew
+}
+
+function sPower() {
+  if (!AC) return;
+  const t = AC.currentTime;                     // rising pickup arpeggio
+  tone(520, 780, t, .12, 'triangle', .2);
+  tone(660, 990, t + .09, .12, 'triangle', .2);
+  tone(880, 1320, t + .18, .2, 'sine', .25);
+}
+
+function sShield() {
+  if (!AC) return;
+  const t = AC.currentTime;                     // barrier humming into being
+  tone(320, 640, t, .3, 'sine', .18);
+  tone(960, 1280, t + .08, .25, 'triangle', .1);
+}
+
+function sBlock() {
+  if (!AC) return;
+  const t = AC.currentTime;                     // bolt meeting the barrier
+  tone(1400, 300, t, .18, 'square', .16);       // metallic clink
+  tone(220, 90, t + .01, .25, 'sine', .22);     // dull thud
+}
+
+function sGold() {
+  if (!AC) return;
+  const t = AC.currentTime;                     // gong-like shimmer
+  tone(660, 1320, t, .3, 'triangle', .18);
+  tone(990, 1980, t + .1, .35, 'sine', .14);
+}
+
+function sLose() {
+  if (!AC) return;
+  const t = AC.currentTime;
+  const o = AC.createOscillator(), g = AC.createGain(), flt = AC.createBiquadFilter();
+  flt.type = 'lowpass';
+  flt.frequency.setValueAtTime(900, t);
+  flt.frequency.exponentialRampToValueAtTime(120, t + .8);
+  o.type = 'sawtooth';
+  o.frequency.setValueAtTime(240, t);
+  o.frequency.exponentialRampToValueAtTime(52, t + .8);
+  g.gain.setValueAtTime(.3, t);
+  g.gain.exponentialRampToValueAtTime(.0008, t + .9);
+  o.connect(flt); flt.connect(g); g.connect(sfxOut);
+  o.start(t); o.stop(t + 1);
+  tone(92, 46, t, .5, 'sine', .3);
+}
+
+function sStart() {
+  if (!AC) return;
+  const t = AC.currentTime;
+  tone(660, 660, t, .3, 'sine', .2);
+  tone(880, 880, t + .14, .45, 'sine', .18);
+}
+
+function sMile() {
+  if (!AC) return;
+  const t = AC.currentTime;
+  tone(988, 988, t, .35, 'sine', .12);
+  tone(1319, 1319, t + .12, .4, 'sine', .1);
+}
+
+function sTheme() {
+  if (!AC) return;
+  const t = AC.currentTime;                     // watery swell on entering new waters
+  tone(262, 524, t, .8, 'sine', .12);
+  tone(392, 784, t + .1, .7, 'triangle', .09);
+}
+
+function sCrack() {
+  if (!AC) return;
+  const t = AC.currentTime;                     // shelf shatters
+  tone(300, 90, t, .22, 'square', .2);
+  tone(1400, 500, t + .01, .1, 'triangle', .1);
+}
+
+// ---------- hints for new shelf types ----------
+const HINT = '← → steer · R restart · M music';
+const HINTS = {
+  move:   'a shelf drifts left & right — time your bounce',
+  spring: 'golden shelves fling you higher',
+  lift:   'this shelf rises and falls',
+  crack:  'that shelf is cracked — it breaks after one bounce'
+};
+let seen = {}, hintT = 0;
+function hint(msg) {
+  m.textContent = msg;
+  clearTimeout(hintT);
+  hintT = setTimeout(() => { if (play) m.textContent = HINT; }, 3400);
+}
+function noteType(p) {
+  if (p.type !== 'normal' && !seen[p.type]) { seen[p.type] = true; hint(HINTS[p.type]); }
+}
+
+// stationary ward wisps appear on shelves past depth 1000 and fire bolts at you
+function maybeEnemy(p) {
+  const d = -p.y / 12;
+  if (p.type === 'normal' && d >= 1000 && Math.random() < .33) {   // 33% of deep shelves host a wisp
+    en.push({ x: p.x + rn(16, p.w - 16), y: p.y - 13, r: 9, st: 'idle', cd: rn(.4, 1.4), ch: 0 });
+    if (!seenEn) { seenEn = true; hint('ward wisps fire back — keep climbing'); }
+  }
+}
+
+// golden power-ups float to the left/right of shelves past depth 1000:
+// grabbing one gives +50% bounce height (even on spring pads) for a while
+function maybePowerup(p) {
+  const d = -p.y / 12;
+  if (d >= 1000 && Math.random() < .12) {
+    const side = Math.random() < .5 ? -1 : 1;
+    const pxPos = Math.max(14, Math.min(W - 14, side === -1 ? p.x - 38 : p.x + p.w + 38));
+    const kind = ['boost', 'shield', 'gold'][(Math.random() * 3) | 0];
+    ups.push({ x: pxPos, y: p.y - 20, r: 10, kind });
+  }
+}
+
+// --- background music: generative ambient loop (progression changes with the depth theme) ---
+let EIGHTH = 60 / 74 / 2;
+let CHORDS = [
+  { t: [57, 60, 64], b: 45 },
+  { t: [53, 57, 60], b: 41 },
+  { t: [55, 60, 64], b: 48 },
+  { t: [55, 59, 62], b: 43 }
+];
+let PADWAVE = 'triangle', PADVOL = .05, SPARKWAVE = 'sine';
+const MUS = { step: 0, next: 0, started: false, bus: null };
+
+function pad(notes, t) {
+  const dur = EIGHTH * 8;
+  for (const n of notes) {
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.type = PADWAVE;
+    o.frequency.value = mtof(n);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(PADVOL, t + 1.2);
+    g.gain.setValueAtTime(PADVOL, t + dur - 1.4);
+    g.gain.linearRampToValueAtTime(0, t + dur);
+    o.connect(g);
+    g.connect(MUS.bus);
+    o.start(t);
+    o.stop(t + dur + .1);
+  }
+}
+
+function musStep(step, t) {
+  const ch = CHORDS[((step / 8) | 0) % CHORDS.length];
+  if (step % 8 === 0) {
+    pad(ch.t, t);
+    tone(mtof(ch.b), mtof(ch.b), t, EIGHTH * 7.5, 'sine', .1, MUS.bus);
+  } else if (step % 2 === 0) {
+    const pool = [ch.t[0] + 12, ch.t[1] + 12, ch.t[2] + 12, ch.t[2] + 24];
+    const n = pool[(rn(0, 3)) | 0];
+    tone(mtof(n), mtof(n), t, .5, SPARKWAVE, .07, MUS.bus);
+  }
+}
+
+function musTick() {
+  if (!AC) return;
+  const now = AC.currentTime;
+  if (MUS.next < now - .25) MUS.next = now + .08;   // resync after a stall
+  while (MUS.next < now + .16) {
+    musStep(MUS.step, Math.max(MUS.next, now));
+    MUS.step = (MUS.step + 1) % (CHORDS.length * 8);
+    MUS.next += EIGHTH;
+  }
+}
+setInterval(musTick, 40);
+
+function setMusic(on) {
+  musicOn = on;
+  mBtn.classList.toggle('off', !on);
+  mIcoOn.style.display = on ? '' : 'none';
+  mIcoOff.style.display = on ? 'none' : '';
+  if (AC && musicVol) musicVol.gain.setTargetAtTime(on ? 1 : 0, AC.currentTime, .08);
+}
+
+mBtn.addEventListener('click', () => { audioInit(); setMusic(!musicOn); mBtn.blur(); });
+
+// ---------- depth themes: every 2000 depth, new waters + a new synth loop ----------
+const THEMES = [
+  {
+    name: 'the Keeper\'s Room',
+    q: 'The memory turned, keeping every moment from the tide.',
+    s:  'radial-gradient(circle at 65% 40%,#13203a,#070b18 70%)',
+    f:  'radial-gradient(circle at 30% 35%,rgba(255,255,255,.06),transparent 35%),radial-gradient(circle at 70% 60%,rgba(180,220,255,.05),transparent 40%)',
+    w:  'radial-gradient(#ffd98a,#b97a1c 62%,transparent)', ws: '0 0 80px rgba(255,190,90,.4)',
+    b:  'linear-gradient(to left,rgba(255,214,138,.22),transparent)',
+    sp: 'conic-gradient(#0b2a5a,#7fd8ff,#123a7a,#bfefff,#061a3c)', ss: '0 0 80px rgba(127,216,255,.35), inset 0 0 60px rgba(255,255,255,.25)',
+    k:  'linear-gradient(#0a0f1e,#1c2742 55%,transparent)',
+    mus: { tempo: 74, padWave: 'triangle', padVol: .05, sparkWave: 'sine', prog: [
+      { t: [57, 60, 64], b: 45 }, { t: [53, 57, 60], b: 41 },
+      { t: [55, 60, 64], b: 48 }, { t: [55, 59, 62], b: 43 } ] }
+  },
+  {
+    name: 'the Ember Vault',
+    q: 'Embers drift where the old fire slept.',
+    s:  'radial-gradient(circle at 65% 40%,#3a1813,#180708 70%)',
+    f:  'radial-gradient(circle at 30% 35%,rgba(255,180,120,.07),transparent 35%),radial-gradient(circle at 70% 60%,rgba(255,140,90,.05),transparent 40%)',
+    w:  'radial-gradient(#ffb36b,#a83c14 62%,transparent)', ws: '0 0 80px rgba(255,120,60,.5)',
+    b:  'linear-gradient(to left,rgba(255,150,80,.25),transparent)',
+    sp: 'conic-gradient(#5a0b14,#ff9d5c,#7a1230,#ffd2a8,#3c060f)', ss: '0 0 80px rgba(255,140,80,.4), inset 0 0 60px rgba(255,255,255,.2)',
+    k:  'linear-gradient(#1e0a0a,#42271c 55%,transparent)',
+    mus: { tempo: 84, padWave: 'sawtooth', padVol: .036, sparkWave: 'triangle', prog: [
+      { t: [56, 60, 63], b: 37 }, { t: [57, 60, 64], b: 45 },
+      { t: [52, 56, 59], b: 40 }, { t: [55, 59, 62], b: 47 } ] }
+  },
+  {
+    name: 'the Neon Tide',
+    q: 'A neon tide rolls through the silent vaults.',
+    s:  'radial-gradient(circle at 65% 40%,#241340,#0b0718 70%)',
+    f:  'radial-gradient(circle at 30% 35%,rgba(200,150,255,.07),transparent 35%),radial-gradient(circle at 70% 60%,rgba(120,220,255,.05),transparent 40%)',
+    w:  'radial-gradient(#c9a2ff,#5c1ca8 62%,transparent)', ws: '0 0 80px rgba(170,110,255,.5)',
+    b:  'linear-gradient(to left,rgba(180,140,255,.24),transparent)',
+    sp: 'conic-gradient(#1a0b3c,#ff6bd6,#30127a,#9db8ff,#0f0630)', ss: '0 0 80px rgba(255,107,214,.35), inset 0 0 60px rgba(255,255,255,.2)',
+    k:  'linear-gradient(#120a1e,#271c42 55%,transparent)',
+    mus: { tempo: 92, padWave: 'square', padVol: .026, sparkWave: 'triangle', prog: [
+      { t: [54, 57, 61], b: 42 }, { t: [50, 54, 58], b: 38 },
+      { t: [57, 60, 64], b: 45 }, { t: [52, 56, 59], b: 40 } ] }
+  },
+  {
+    name: 'the Verdant Deep',
+    q: 'Green light breathes in the drowned garden.',
+    s:  'radial-gradient(circle at 65% 40%,#12352b,#071812 70%)',
+    f:  'radial-gradient(circle at 30% 35%,rgba(160,255,200,.06),transparent 35%),radial-gradient(circle at 70% 60%,rgba(120,255,180,.05),transparent 40%)',
+    w:  'radial-gradient(#9dffc9,#1ca85c 62%,transparent)', ws: '0 0 80px rgba(110,255,180,.4)',
+    b:  'linear-gradient(to left,rgba(140,255,190,.2),transparent)',
+    sp: 'conic-gradient(#0b3a24,#6bffcf,#127a4a,#c8ffe6,#06301f)', ss: '0 0 80px rgba(107,255,207,.35), inset 0 0 60px rgba(255,255,255,.2)',
+    k:  'linear-gradient(#0a1e14,#1c4229 55%,transparent)',
+    mus: { tempo: 78, padWave: 'triangle', padVol: .05, sparkWave: 'sine', prog: [
+      { t: [50, 53, 57], b: 38 }, { t: [46, 50, 53], b: 34 },
+      { t: [53, 57, 60], b: 41 }, { t: [48, 52, 55], b: 36 } ] }
+  },
+  {
+    name: 'the Gilded Halls',
+    q: 'Gilt remembrances, polished by patient light.',
+    s:  'radial-gradient(circle at 65% 40%,#3a2c10,#181007 70%)',
+    f:  'radial-gradient(circle at 30% 35%,rgba(255,230,160,.07),transparent 35%),radial-gradient(circle at 70% 60%,rgba(255,210,120,.05),transparent 40%)',
+    w:  'radial-gradient(#ffe9a8,#c8951f 62%,transparent)', ws: '0 0 80px rgba(255,215,110,.5)',
+    b:  'linear-gradient(to left,rgba(255,224,150,.24),transparent)',
+    sp: 'conic-gradient(#3c2a08,#ffd97a,#7a5c12,#fff2c8,#241806)', ss: '0 0 80px rgba(255,215,120,.4), inset 0 0 60px rgba(255,255,255,.25)',
+    k:  'linear-gradient(#1a1206,#423318 55%,transparent)',
+    mus: { tempo: 70, padWave: 'sine', padVol: .05, sparkWave: 'triangle', prog: [
+      { t: [50, 54, 58], b: 38 }, { t: [55, 59, 62], b: 43 },
+      { t: [57, 60, 64], b: 45 }, { t: [53, 57, 60], b: 41 } ] }
+  },
+  {
+    name: 'the Frostbound Keep',
+    q: 'The cold keeps what the fire surrendered.',
+    s:  'radial-gradient(circle at 65% 40%,#22303e,#0b1118 70%)',
+    f:  'radial-gradient(circle at 30% 35%,rgba(210,240,255,.06),transparent 35%),radial-gradient(circle at 70% 60%,rgba(190,225,255,.05),transparent 40%)',
+    w:  'radial-gradient(#eaf6ff,#7fa8c8 62%,transparent)', ws: '0 0 80px rgba(200,235,255,.45)',
+    b:  'linear-gradient(to left,rgba(210,240,255,.2),transparent)',
+    sp: 'conic-gradient(#16222e,#cfe8f7,#2a3d4e,#ffffff,#0e161e)', ss: '0 0 80px rgba(200,235,255,.35), inset 0 0 60px rgba(255,255,255,.3)',
+    k:  'linear-gradient(#0c141c,#2a3d4e 55%,transparent)',
+    mus: { tempo: 64, padWave: 'triangle', padVol: .038, sparkWave: 'sine', prog: [
+      { t: [57, 60, 64], b: 33 }, { t: [53, 57, 60], b: 41 },
+      { t: [55, 59, 62], b: 38 }, { t: [50, 53, 57], b: 38 } ] }
+  },
+  {
+    name: 'the Ashen Hollow',
+    q: 'What burned is kept as dust, and the dust endures.',
+    s:  'radial-gradient(circle at 65% 40%,#232327,#0b0b0e 70%)',
+    f:  'radial-gradient(circle at 30% 35%,rgba(255,255,255,.06),transparent 35%),radial-gradient(circle at 70% 60%,rgba(220,220,230,.04),transparent 40%)',
+    w:  'radial-gradient(#f2f2f5,#8a8a94 62%,transparent)', ws: '0 0 80px rgba(230,230,240,.35)',
+    b:  'linear-gradient(to left,rgba(235,235,245,.16),transparent)',
+    sp: 'conic-gradient(#17171b,#d8d8e0,#2c2c33,#ffffff,#101013)', ss: '0 0 80px rgba(230,230,240,.3), inset 0 0 60px rgba(255,255,255,.22)',
+    k:  'linear-gradient(#0d0d10,#2c2c33 55%,transparent)',
+    mus: { tempo: 58, padWave: 'sine', padVol: .04, sparkWave: 'sine', prog: [
+      { t: [52, 56, 59], b: 40 }, { t: [57, 60, 64], b: 45 },
+      { t: [55, 58, 62], b: 36 }, { t: [50, 53, 57], b: 38 } ] }
+  }
+];
+let thmIdx = -1;
+
+function setThm(i) {
+  const T = THEMES[i % THEMES.length];
+  thmIdx = i % THEMES.length;
+  scene.style.background = T.s;
+  elF.style.background = T.f;
+  elW.style.background = T.w; elW.style.boxShadow = T.ws;
+  elB.style.background = T.b;
+  elSp.style.background = T.sp; elSp.style.boxShadow = T.ss;
+  elK.style.background = T.k;
+  qEl.textContent = T.q;
+  EIGHTH = 60 / T.mus.tempo / 2;
+  CHORDS = T.mus.prog;
+  PADWAVE = T.mus.padWave; PADVOL = T.mus.padVol; SPARKWAVE = T.mus.sparkWave;
+  MUS.step = 0;
+}
+
+let W, H, play = false, cam = 0, best = 0, nextY = 0, last = 0, px = null, L = false, R = false, mile = 0, gt = 0;
+const P = { x: 0, y: 0, vx: 0, vy: 0, r: 14 };
+let pl = [], pt = [], en = [], bj = [], ups = [], spawnX = 0, spdMile = 0, seenEn = false, boost = 0, seenUp = false,
+    shld = 0, goldT = 0, seenShld = false, seenGold = false;
+
+// Fairer tuning:
+// - stronger bounce
+// - slightly lower gravity
+// - wider platforms
+// - smaller vertical gaps
+const G = 1300;
+const B = -700;
+const SB = -1150;   // "spring" shelves launch much higher than a normal bounce
+const BSPD = 230;    // base enemy bolt speed; scales with depth to a 2x cap
+const ECHARGE = 1.5; // seconds an enemy charges before firing
+const ERANGE = 430;  // range in which enemies engage you
+const BOOST_DUR = 10;   // seconds of high bounce after grabbing a power-up
+const GOLD_DUR = 5;     // seconds all shelves turn golden (spring bounces)
+const BMULT = Math.sqrt(1.5); // velocity multiplier that yields exactly +50% bounce height (h ∝ v²)
+const A = 3200;
+const MV = 420;
+const PW = 130;
+const PH = 14;
+
+const GAP_MIN = 66;
+const GAP_MAX = 92;
+const REACH = 175;
+const TERMINAL = 920;
+
+function rs() {
+  W = c.width = scene.clientWidth;
+  H = c.height = scene.clientHeight;
+}
+addEventListener('resize', rs);
+rs();
+
+const rn = (a, b) => a + Math.random() * (b - a);
+
+// ---------- progressive difficulty: everything scales with depth (-y / 12) ----------
+function diffFor(y) {
+  const d = Math.max(0, -y / 12);
+  return {
+    gapMin: GAP_MIN + Math.min(46, d * .55),               // gaps widen
+    gapMax: GAP_MAX + Math.min(70, d * .85),
+    pw:     Math.max(74, PW - Math.min(58, (d - 1) * .1)), // shelves narrow slowly now
+    moveP:  Math.min(.34, Math.max(0, (d - 5) / 36)),      // drifting shelves from depth ~5
+    liftP:  Math.min(.10, Math.max(0, (d - 48) / 90)),     // rising/falling shelves, deep down
+    springP:d < 2 ? 0 : Math.min(.14, .05 + d * .0015),    // high-bounce shelves
+    crackP: d < 500 ? 0 : Math.min(.18, .06 + (d - 500) * .0002), // fragile shelves deep down
+  };
+}
+
+function planType(y) {
+  const d = diffFor(y);
+  const r = Math.random();
+  if (r < d.springP) return 'spring';
+  if (r < d.springP + d.moveP + d.liftP)
+    return Math.random() < d.liftP / (d.moveP + d.liftP || 1) ? 'lift' : 'move';
+  if (r < d.springP + d.moveP + d.liftP + d.crackP) return 'crack';
+  return 'normal';
+}
+
+function pf(x, y, type) {
+  const t = type || 'normal';
+  const d = diffFor(y);
+  let w = d.pw;
+  if (t === 'spring') w *= .78;                            // boost shelves are narrower
+  const col = {
+    normal: `hsl(${rn(190, 215)} 70% 62%)`,
+    move:   `hsl(${rn(158, 184)} 72% 56%)`,
+    lift:   `hsl(${rn(272, 300)} 72% 64%)`,
+    spring: `hsl(${rn(40, 52)} 96% 62%)`,
+    crack:  `hsl(${rn(208, 228)} 30% 52%)`
+  }[t];
+
+  let cks = null;                              // fissure lines so it reads at a glance
+  if (t === 'crack') {
+    cks = [];
+    for (let i = 0; i < 3; i++) {
+      const pts = [], cxp = rn(12, w - 12);
+      for (let s2 = 0; s2 <= 4; s2++) pts.push([cxp + rn(-7, 7), (s2 / 4) * PH]);
+      cks.push(pts);
+    }
+  }
+
+  const p = {
+    x: x - w / 2, y, w, h: PH, c: col, type: t,
+    baseX: x - w / 2, baseY: y,
+    range: 0, vrange: 0, speed: 0, phase: rn(0, Math.PI * 2),
+    prevX: x - w / 2, prevY: y, dx: 0, dy: 0,
+    cks
+  };
+  if (t === 'move') { p.range = rn(45, 105); p.speed = rn(.9, 1.7); }
+  if (t === 'lift') { p.vrange = rn(26, 48); p.speed = rn(1.1, 1.9); }
+  return p;
+}
+
+function burst(a, b, n, col) {
+  for (let i = 0; i < n; i++) {
+    const t = rn(0, 7), v = rn(50, 240);
+    pt.push({ x: a, y: b, vx: Math.cos(t) * v, vy: Math.sin(t) * v - 80, l: rn(.3, .7), m: .7, r: rn(1.5, 4), c: col });
+  }
+}
+
+// tiny triangle glyph (dir: 0 up · 1 right · -1 left · 2 down)
+function tri(tx, ty, dir) {
+  const s = 4;
+  x.beginPath();
+  if (dir === 0)      { x.moveTo(tx, ty); x.lineTo(tx - s, ty + s * 1.7); x.lineTo(tx + s, ty + s * 1.7); }
+  else if (dir === 2) { x.moveTo(tx, ty); x.lineTo(tx - s, ty - s * 1.7); x.lineTo(tx + s, ty - s * 1.7); }
+  else if (dir > 0)   { x.moveTo(tx, ty); x.lineTo(tx - s * 1.7, ty - s); x.lineTo(tx - s * 1.7, ty + s); }
+  else                { x.moveTo(tx, ty); x.lineTo(tx + s * 1.7, ty - s); x.lineTo(tx + s * 1.7, ty + s); }
+  x.closePath();
+  x.fill();
+}
+
+function nextPlatform(y) {
+  const margin = 26;
+  const minX = PW / 2 + margin;
+  const maxX = W - PW / 2 - margin;
+
+  if (maxX <= minX) {
+    spawnX = W / 2;
+    return pf(W / 2, y);
+  }
+
+  // Keep each new platform horizontally reachable from the previous one.
+  let maxOff = Math.min(REACH, Math.max(70, (maxX - minX) / 2));
+  const type = planType(y);
+  if (type === 'move') maxOff -= 55;                        // reserve room for its travel
+
+  let nx = spawnX + rn(-Math.max(40, maxOff), Math.max(40, maxOff));
+  nx = Math.max(minX, Math.min(maxX, nx));
+
+  spawnX = nx;
+  const p = pf(nx, y, type);
+  if (type === 'move')                                      // keep drifting shelves on screen
+    p.range = Math.max(30, Math.min(p.range, p.baseX - margin, W - margin - p.baseX - p.w));
+  return p;
+}
+
+function start() {
+  P.x = W / 2;
+
+  const firstY = H * .78;
+  P.y = firstY - P.r;
+  P.vx = 0;
+  P.vy = B;
+
+  cam = best = mile = gt = 0;
+  seen = {};
+  spawnX = W / 2;
+  pl = [pf(W / 2, firstY)];
+  pt = [];
+  en = []; bj = []; ups = [];
+  boost = 0; seenUp = false;
+  shld = 0; goldT = 0; seenShld = false; seenGold = false;
+  spdMile = 0; seenEn = false;
+  nextY = firstY;
+
+  while (nextY > -H) {
+    const dd = diffFor(nextY);
+    nextY -= rn(dd.gapMin, dd.gapMax);
+    const p = nextPlatform(nextY);
+    pl.push(p);
+    noteType(p);
+    maybeEnemy(p);
+    maybePowerup(p);
+  }
+
+  play = true;
+  px = null;
+  game.style.display = 'block';
+  startBtn.style.display = 'none';
+  startBtn.blur();
+
+  u.textContent = 'DEPTH 0';
+  m.textContent = HINT;
+
+  audioInit();
+  if (!MUS.started) { MUS.started = true; MUS.next = AC.currentTime + .15; }
+  sStart();
+}
+
+function end() {
+  play = false;
+  burst(P.x, P.y, 36, '#ffcf7a');
+  sLose();
+
+  u.textContent = `LOST — DEPTH ${best}`;
+  startBtn.textContent = 'Try Again';
+  startBtn.style.display = 'block';
+  m.textContent = 'the tide keeps what you remember';
+}
+
+// speed multiplier grows with depth: +16% per 500-depth tier until depth 3000
+// (+80%), then keeps growing uncapped at a gentler +4% per tier forever
+function spdFor(d) {
+  const t = d / 500;
+  return t <= 6 ? 1 + Math.min(.8, t * .16) : 1.8 + (t - 6) * .04;
+}
+
+function up(dt) {
+  if (!play) return;
+
+  gt += dt;
+  if (boost > 0) boost = Math.max(0, boost - dt);
+  if (goldT > 0) goldT = Math.max(0, goldT - dt);
+
+  for (const p of pl) {                                    // animate special shelves
+    const ox = p.x, oy = p.y;
+    if (p.type === 'move') p.x = p.baseX + Math.sin(gt * p.speed + p.phase) * p.range;
+    else if (p.type === 'lift') p.y = p.baseY + Math.sin(gt * p.speed + p.phase) * p.vrange;
+    p.prevX = ox; p.prevY = oy; p.dx = p.x - ox; p.dy = p.y - oy;
+  }
+
+  // every 500 depth everything gets faster (+16% per tier to depth 3000,
+  // then a slower +4% per tier that never stops)
+  const tier = Math.floor(best / 500);
+  if (tier > spdMile) { spdMile = tier; hint('the tide quickens'); sSpeed(); }
+  const sp = spdFor(best);
+
+  const py = P.y;
+  let ax = (L ? -A * sp : 0) + (R ? A * sp : 0);
+
+  if (px != null) {
+    ax += Math.max(-A * sp, Math.min(A * sp, (px - P.x) * 18));
+  }
+
+  P.vx = Math.max(-MV, Math.min(MV, (P.vx + ax * dt) * .92));
+  P.x += P.vx * dt;
+
+  if (P.x < -P.r) P.x = W + P.r;
+  if (P.x > W + P.r) P.x = -P.r;
+
+  P.vy += G * sp * dt;
+  P.vy = Math.min(P.vy, TERMINAL * sp);
+  P.y += P.vy * dt;
+
+  const t = H * .42;
+  if (P.y < cam + t) cam += P.y - (cam + t);
+
+  best = Math.max(best, Math.floor(-cam / 12));
+  u.textContent = 'DEPTH ' + best;
+  if (Math.floor(best / 100) > mile) { mile = Math.floor(best / 100); sMile(); }
+
+  // every 2000 depth the waters — and the music — shift to a new theme
+  const ti = Math.floor(best / 2000) % THEMES.length;
+  if (ti !== thmIdx) { setThm(ti); sTheme(); hint('the waters shift: ' + THEMES[ti].name); }
+
+  while (nextY > cam - H * 1.3) {
+    const dd = diffFor(nextY);
+    nextY -= rn(dd.gapMin, dd.gapMax);
+    const p = nextPlatform(nextY);
+    pl.push(p);
+    noteType(p);
+    maybeEnemy(p);
+    maybePowerup(p);
+  }
+
+  pl = pl.filter(p => p.y - cam < H + 220);
+
+  // --- ward wisps: stationary turrets that fire bolts at you past depth 1000 ---
+  for (let i = en.length - 1; i >= 0; i--) {
+    const e = en[i];
+    if (e.y - cam > H + 140) { en.splice(i, 1); continue; }
+
+    const dx2 = P.x - e.x, dy2 = P.y - e.y;
+    const dist = Math.hypot(dx2, dy2);
+
+    if (e.st === 'idle') {
+      e.cd -= dt;
+      if (e.cd <= 0 && dist < ERANGE) e.st = 'charge';
+    } else if ((e.ch += dt / ECHARGE) >= 1) {
+      e.st = 'idle'; e.cd = rn(1.4, 2.6); e.ch = 0;
+      const a = Math.atan2(dy2, dx2);
+      const bspd = Math.min(BSPD * 2, BSPD + (-e.y / 12 - 1000) * .1); // bolts quicken to a 2x cap
+      bj.push({ x: e.x, y: e.y - 4, vx: Math.cos(a) * bspd, vy: Math.sin(a) * bspd, r: 5 });
+      sShot();
+    }
+  }
+
+  for (let i = bj.length - 1; i >= 0; i--) {
+    const b = bj[i];
+    b.x += b.vx * dt; b.y += b.vy * dt;
+    const sy = b.y - cam;
+    if (sy < -80 || sy > H + 90 || b.x < -50 || b.x > W + 50) { bj.splice(i, 1); continue; }
+    if (Math.hypot(b.x - P.x, b.y - P.y) <= b.r + P.r) {
+      if (shld > 0) {                                 // the shield eats the bolt
+        shld = 0;
+        bj.splice(i, 1);
+        burst(P.x, P.y, 20, '#7fd8ff');
+        sBlock();
+        hint('the shield shattered');
+      } else end();
+    }
+  }
+
+  // --- golden power-ups: high bounce for a while ---
+  for (let i = ups.length - 1; i >= 0; i--) {
+    const k = ups[i];
+    if (k.y - cam > H + 80) { ups.splice(i, 1); continue; }
+    if (Math.hypot(k.x - P.x, k.y - P.y) <= k.r + P.r) {
+      ups.splice(i, 1);
+      if (k.kind === 'shield') {
+        shld = 1;
+        burst(k.x, k.y, 18, '#7fd8ff');
+        sShield();
+        if (!seenShld) { seenShld = true; hint('shield — blocks one wisp bolt'); }
+      } else if (k.kind === 'gold') {
+        goldT = GOLD_DUR;
+        burst(k.x, k.y, 20, '#ffd27a');
+        sGold();
+        if (!seenGold) { seenGold = true; hint('golden shelves — everything bounces higher for ' + GOLD_DUR + 's'); }
+      } else {
+        boost = BOOST_DUR;
+        burst(k.x, k.y, 18, '#ffd98a');
+        sPower();
+        if (!seenUp) { seenUp = true; hint('high bounce — 10s of extra height'); }
+      }
+    }
+  }
+
+  if (P.vy > 0) {
+    for (let pi = 0; pi < pl.length; pi++) {
+      const p = pl[pi];
+      const sy = p.y - cam;
+      if (sy < -40 || sy > H + 40) continue;
+
+      const prevBottom = py + P.r;
+      const newBottom = P.y + P.r;
+
+      const topRef = Math.min(p.y, p.prevY);   // handles shelves that move vertically
+      if (
+        P.x + P.r > p.x &&
+        P.x - P.r < p.x + p.w &&
+        prevBottom <= topRef + 10 &&
+        newBottom >= p.y
+      ) {
+        P.y = p.y - P.r;
+        const springy = p.type === 'spring' || goldT > 0;   // golden shelves launch like springs
+        P.vy = (springy ? SB : B) * sp * (boost > 0 ? BMULT : 1);
+        if (p.dx) P.x += p.dx;                 // carried by a drifting shelf
+        burst(P.x, p.y, springy ? 16 : 10, springy ? '#ffd98a' : '#9fe8ff');
+        if (springy) sSpring(); else sBounce();
+        if (p.type === 'crack') {              // it shatters after this one bounce
+          pl.splice(pi, 1);
+          burst(P.x, p.y + PH / 2, 14, '#8fa3c8');
+          sCrack();
+        }
+        break;
+      }
+    }
+  }
+
+  for (const q of pt) {
+    q.vy += G * .22 * dt;
+    q.x += q.vx * dt;
+    q.y += q.vy * dt;
+    q.l -= dt;
+  }
+  pt = pt.filter(q => q.l > 0);
+
+  if (P.y - cam > H + 70) end();
+}
+
+function dr() {
+  x.clearRect(0, 0, W, H);
+
+  for (const p of pl) {
+    const y = p.y - cam;
+    if (y < -30 || y > H + 30) continue;
+
+    const golded = goldT > 0;
+    x.save();
+    x.shadowColor = golded ? '#ffd27a' : p.c;
+    x.shadowBlur = (golded || p.type === 'spring') ? 20 + Math.sin(gt * 6 + p.phase) * 8 : 16;
+    x.fillStyle = golded ? '#ffd98a' : p.c;
+    x.fillRect(p.x, y, p.w, p.h);
+
+    if (p.type !== 'normal') {                  // little glyphs so shelf types read at a glance
+      x.shadowBlur = 0;
+      const cx = p.x + p.w / 2, cy = y + PH / 2;
+      if (p.type === 'move') {
+        x.fillStyle = 'rgba(6,12,26,.55)';
+        tri(p.x + 9, cy, -1); tri(p.x + p.w - 9, cy, 1);
+      } else if (p.type === 'spring') {
+        x.fillStyle = 'rgba(255,250,235,.85)';
+        tri(cx, y - 4, 0);                      // up arrow: launches you
+      } else if (p.type === 'lift') {
+        x.fillStyle = 'rgba(6,12,26,.55)';
+        tri(cx, y - 4, 0); tri(cx, y + PH + 4, 2);
+      } else if (p.type === 'crack') {
+        x.strokeStyle = 'rgba(8,12,22,.8)';
+        x.lineWidth = 1.6;
+        for (const line of p.cks) {
+          x.beginPath();
+          for (let i3 = 0; i3 < line.length; i3++)
+            i3 ? x.lineTo(p.x + line[i3][0], y + line[i3][1]) : x.moveTo(p.x + line[i3][0], y + line[i3][1]);
+          x.stroke();
+        }
+      }
+      if (golded && p.type !== 'spring') {              // golden shelves launch like springs
+        x.fillStyle = 'rgba(110,66,14,.5)';
+        tri(p.x + p.w / 2, y - 4, 0);
+      }
+    }
+    x.restore();
+  }
+
+  // ward wisps + their bolts
+  for (const e of en) {
+    const y = e.y - cam;
+    if (y < -40 || y > H + 60) continue;
+
+    if (e.st === 'charge') {                         // telegraph the shot
+      const a2 = Math.atan2(P.y - e.y, P.x - e.x);
+      x.save();
+      x.strokeStyle = `rgba(255,93,143,${(.12 + e.ch * .3).toFixed(3)})`;
+      x.setLineDash([6, 8]);
+      x.beginPath();
+      x.moveTo(e.x + Math.cos(a2) * (e.r + 5), y + Math.sin(a2) * (e.r + 5));
+      x.lineTo(e.x + Math.cos(a2) * ERANGE, y + Math.sin(a2) * ERANGE);
+      x.stroke();
+      x.restore();
+    }
+
+    x.save();
+    x.shadowColor = '#ff5d8f';
+    x.shadowBlur = 14 + (e.st === 'charge' ? e.ch * 16 : Math.sin(gt * 3 + e.x) * 4);
+    x.fillStyle = e.st === 'charge' ? `hsl(350 92% ${Math.round(58 + e.ch * 27)}%)` : 'hsl(350 85% 62%)';
+    x.beginPath();
+    x.arc(e.x, y, e.r + (e.st === 'charge' ? e.ch * 3 : 0), 0, 7);
+    x.fill();
+    x.restore();
+  }
+
+  for (const b of bj) {
+    const y = b.y - cam;
+    if (y < -30 || y > H + 40) continue;
+    x.save();
+    x.shadowColor = '#ffb14d';
+    x.shadowBlur = 12;
+    x.fillStyle = '#ffd9a8';
+    x.beginPath();
+    x.arc(b.x, y, b.r, 0, 7);
+    x.fill();
+    x.restore();
+  }
+
+  // power-ups: gold diamond (high bounce), blue orb (shield), coin (golden shelves)
+  for (const k of ups) {
+    const y = k.y - cam;
+    if (y < -30 || y > H + 40) continue;
+    const r2 = k.r + Math.sin(gt * 5 + k.x) * 1.5;      // gentle pulse
+    x.save();
+    if (k.kind === 'shield') {
+      x.shadowColor = '#4da6ff';
+      x.shadowBlur = 16 + Math.sin(gt * 5 + k.x) * 6;
+      const g2 = x.createRadialGradient(k.x, y - 2, 1, k.x, y, r2);
+      g2.addColorStop(0, '#fff');
+      g2.addColorStop(.55, '#9fdcff');
+      g2.addColorStop(1, '#1f5fb3');
+      x.fillStyle = g2;
+      x.beginPath();
+      x.arc(k.x, y, r2, 0, 7);
+      x.fill();
+      x.shadowBlur = 0;
+      x.strokeStyle = 'rgba(214,240,255,.9)';           // barrier rim
+      x.lineWidth = 2;
+      x.beginPath();
+      x.arc(k.x, y, r2 + 3.5, 0, 7);
+      x.stroke();
+    } else if (k.kind === 'gold') {
+      x.shadowColor = '#ffd27a';
+      x.shadowBlur = 16 + Math.sin(gt * 5 + k.x) * 6;
+      const g3 = x.createRadialGradient(k.x, y - 2, 1, k.x, y, r2);
+      g3.addColorStop(0, '#fff8e0');
+      g3.addColorStop(.6, '#ffd98a');
+      g3.addColorStop(1, '#b97a1c');
+      x.fillStyle = g3;
+      x.beginPath();
+      x.arc(k.x, y, r2, 0, 7);
+      x.fill();
+      x.shadowBlur = 0;
+      x.strokeStyle = 'rgba(120,74,16,.8)';             // coin rim
+      x.lineWidth = 2;
+      x.beginPath();
+      x.arc(k.x, y, r2 - 3.5, 0, 7);
+      x.stroke();
+      x.fillStyle = 'rgba(255,255,255,.9)';
+      x.beginPath();
+      x.arc(k.x, y, 2.4, 0, 7);
+      x.fill();
+    } else {
+      x.shadowColor = '#ffd27a';
+      x.shadowBlur = 16 + Math.sin(gt * 5 + k.x) * 6;
+      x.fillStyle = '#ffe9b8';
+      x.beginPath();                                     // diamond
+      x.moveTo(k.x, y - r2);
+      x.lineTo(k.x + r2 * .7, y);
+      x.lineTo(k.x, y + r2);
+      x.lineTo(k.x - r2 * .7, y);
+      x.closePath();
+      x.fill();
+      x.fillStyle = 'rgba(255,255,255,.85)';             // inner spark
+      x.beginPath();
+      x.arc(k.x, y, 2.6, 0, 7);
+      x.fill();
+    }
+    x.restore();
+  }
+
+  for (const q of pt) {
+    const y = q.y - cam;
+    if (y < -20 || y > H + 20) continue;
+
+    x.globalAlpha = Math.max(0, q.l / q.m);
+    x.fillStyle = q.c;
+    x.beginPath();
+    x.arc(q.x, y, q.r, 0, 7);
+    x.fill();
+  }
+  x.globalAlpha = 1;
+
+  const y = P.y - cam;
+  x.save();
+  x.shadowColor = boost > 0 ? '#ffd27a' : '#bfefff';
+  x.shadowBlur = boost > 0 ? 34 : 26;
+
+  const gr = x.createRadialGradient(P.x, y - 4, 2, P.x, y, P.r);
+  if (boost > 0) {
+    gr.addColorStop(0, '#fff');
+    gr.addColorStop(.55, '#ffd98a');
+    gr.addColorStop(1, '#9e6b1f');
+  } else {
+    gr.addColorStop(0, '#fff');
+    gr.addColorStop(.55, '#9fdcff');
+    gr.addColorStop(1, '#23569e');
+  }
+
+  x.fillStyle = gr;
+  x.beginPath();
+  x.arc(P.x, y, P.r, 0, 7);
+  x.fill();
+
+  if (boost > 0) {                                        // timer ring while boosted
+    x.strokeStyle = 'rgba(255,210,122,.8)';
+    x.lineWidth = 2.5;
+    x.beginPath();
+    x.arc(P.x, y, P.r + 6, -Math.PI / 2, -Math.PI / 2 + (boost / BOOST_DUR) * Math.PI * 2);
+    x.stroke();
+  }
+
+  if (shld > 0) {                                        // barrier ring while shielded
+    x.strokeStyle = `rgba(127,216,255,${(.55 + Math.sin(gt * 4) * .2).toFixed(3)})`;
+    x.lineWidth = 3;
+    x.shadowColor = '#4da6ff';
+    x.shadowBlur = 18;
+    x.beginPath();
+    x.arc(P.x, y, P.r + 10, 0, 7);
+    x.stroke();
+  }
+  x.restore();
+}
+
+setThm(0);
+
+function loop(t) {
+  const dt = Math.min((t - last) / 1000, .035);
+  last = t;
+  up(dt);
+  dr();
+  requestAnimationFrame(loop);
+}
+
+addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !play) start();
+  if (e.key === 'r' || e.key === 'R') start();
+  if (e.key === 'm' || e.key === 'M') { audioInit(); setMusic(!musicOn); }
+  if (e.key === 'ArrowLeft' || e.key === 'a') L = true;
+  if (e.key === 'ArrowRight' || e.key === 'd') R = true;
+});
+
+addEventListener('keyup', e => {
+  if (e.key === 'ArrowLeft' || e.key === 'a') L = false;
+  if (e.key === 'ArrowRight' || e.key === 'd') R = false;
+});
+
+// stop long-press context menu / text-selection callout on mobile
+addEventListener('contextmenu', e => e.preventDefault());
+
+c.addEventListener('pointerdown', e => {
+  if (!play) {
+    start();
+    return;
+  }
+  const r = c.getBoundingClientRect();
+  px = e.clientX - r.left;
+});
+
+c.addEventListener('pointermove', e => {
+  if (e.buttons > 0 || e.pointerType === 'touch') {
+    const r = c.getBoundingClientRect();
+    px = e.clientX - r.left;
+  }
+});
+
+c.addEventListener('pointerup', () => px = null);
+
+startBtn.addEventListener('click', () => {
+  if (!play) start();
+});
+
+requestAnimationFrame(t => {
+  last = t;
+  loop(t);
+});
+</script>
+</body>
+</html>
