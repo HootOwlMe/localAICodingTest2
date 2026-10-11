@@ -693,7 +693,8 @@ function up(dt) {
     ax += Math.max(-A * sp, Math.min(A * sp, (px - P.x) * 18));
   }
 
-  P.vx = Math.max(-MV, Math.min(MV, (P.vx + ax * dt) * .92));
+  // frame-rate-independent damping: identical feel at 60/144/240 Hz
+  P.vx = Math.max(-MV, Math.min(MV, (P.vx + ax * dt) * Math.pow(.92, dt * 60)));
   P.x += P.vx * dt;
 
   if (P.x < -P.r) P.x = W + P.r;
