@@ -185,6 +185,27 @@ function sPower() {
   tone(880, 1320, t + .18, .2, 'sine', .25);
 }
 
+function sShield() {
+  if (!AC) return;
+  const t = AC.currentTime;                     // barrier humming into being
+  tone(320, 640, t, .3, 'sine', .18);
+  tone(960, 1280, t + .08, .25, 'triangle', .1);
+}
+
+function sBlock() {
+  if (!AC) return;
+  const t = AC.currentTime;                     // bolt meeting the barrier
+  tone(1400, 300, t, .18, 'square', .16);       // metallic clink
+  tone(220, 90, t + .01, .25, 'sine', .22);     // dull thud
+}
+
+function sGold() {
+  if (!AC) return;
+  const t = AC.currentTime;                     // gong-like shimmer
+  tone(660, 1320, t, .3, 'triangle', .18);
+  tone(990, 1980, t + .1, .35, 'sine', .14);
+}
+
 function sLose() {
   if (!AC) return;
   const t = AC.currentTime;
@@ -264,7 +285,8 @@ function maybePowerup(p) {
   if (d >= 1000 && Math.random() < .12) {
     const side = Math.random() < .5 ? -1 : 1;
     const pxPos = Math.max(14, Math.min(W - 14, side === -1 ? p.x - 38 : p.x + p.w + 38));
-    ups.push({ x: pxPos, y: p.y - 20, r: 10 });
+    const kind = ['boost', 'shield', 'gold'][(Math.random() * 3) | 0];
+    ups.push({ x: pxPos, y: p.y - 20, r: 10, kind });
   }
 }
 
@@ -383,6 +405,45 @@ const THEMES = [
     mus: { tempo: 78, padWave: 'triangle', padVol: .05, sparkWave: 'sine', prog: [
       { t: [50, 53, 57], b: 38 }, { t: [46, 50, 53], b: 34 },
       { t: [53, 57, 60], b: 41 }, { t: [48, 52, 55], b: 36 } ] }
+  },
+  {
+    name: 'the Gilded Halls',
+    q: 'Gilt remembrances, polished by patient light.',
+    s:  'radial-gradient(circle at 65% 40%,#3a2c10,#181007 70%)',
+    f:  'radial-gradient(circle at 30% 35%,rgba(255,230,160,.07),transparent 35%),radial-gradient(circle at 70% 60%,rgba(255,210,120,.05),transparent 40%)',
+    w:  'radial-gradient(#ffe9a8,#c8951f 62%,transparent)', ws: '0 0 80px rgba(255,215,110,.5)',
+    b:  'linear-gradient(to left,rgba(255,224,150,.24),transparent)',
+    sp: 'conic-gradient(#3c2a08,#ffd97a,#7a5c12,#fff2c8,#241806)', ss: '0 0 80px rgba(255,215,120,.4), inset 0 0 60px rgba(255,255,255,.25)',
+    k:  'linear-gradient(#1a1206,#423318 55%,transparent)',
+    mus: { tempo: 70, padWave: 'sine', padVol: .05, sparkWave: 'triangle', prog: [
+      { t: [50, 54, 58], b: 38 }, { t: [55, 59, 62], b: 43 },
+      { t: [57, 60, 64], b: 45 }, { t: [53, 57, 60], b: 41 } ] }
+  },
+  {
+    name: 'the Frostbound Keep',
+    q: 'The cold keeps what the fire surrendered.',
+    s:  'radial-gradient(circle at 65% 40%,#22303e,#0b1118 70%)',
+    f:  'radial-gradient(circle at 30% 35%,rgba(210,240,255,.06),transparent 35%),radial-gradient(circle at 70% 60%,rgba(190,225,255,.05),transparent 40%)',
+    w:  'radial-gradient(#eaf6ff,#7fa8c8 62%,transparent)', ws: '0 0 80px rgba(200,235,255,.45)',
+    b:  'linear-gradient(to left,rgba(210,240,255,.2),transparent)',
+    sp: 'conic-gradient(#16222e,#cfe8f7,#2a3d4e,#ffffff,#0e161e)', ss: '0 0 80px rgba(200,235,255,.35), inset 0 0 60px rgba(255,255,255,.3)',
+    k:  'linear-gradient(#0c141c,#2a3d4e 55%,transparent)',
+    mus: { tempo: 64, padWave: 'triangle', padVol: .038, sparkWave: 'sine', prog: [
+      { t: [57, 60, 64], b: 33 }, { t: [53, 57, 60], b: 41 },
+      { t: [55, 59, 62], b: 38 }, { t: [50, 53, 57], b: 38 } ] }
+  },
+  {
+    name: 'the Ashen Hollow',
+    q: 'What burned is kept as dust, and the dust endures.',
+    s:  'radial-gradient(circle at 65% 40%,#232327,#0b0b0e 70%)',
+    f:  'radial-gradient(circle at 30% 35%,rgba(255,255,255,.06),transparent 35%),radial-gradient(circle at 70% 60%,rgba(220,220,230,.04),transparent 40%)',
+    w:  'radial-gradient(#f2f2f5,#8a8a94 62%,transparent)', ws: '0 0 80px rgba(230,230,240,.35)',
+    b:  'linear-gradient(to left,rgba(235,235,245,.16),transparent)',
+    sp: 'conic-gradient(#17171b,#d8d8e0,#2c2c33,#ffffff,#101013)', ss: '0 0 80px rgba(230,230,240,.3), inset 0 0 60px rgba(255,255,255,.22)',
+    k:  'linear-gradient(#0d0d10,#2c2c33 55%,transparent)',
+    mus: { tempo: 58, padWave: 'sine', padVol: .04, sparkWave: 'sine', prog: [
+      { t: [52, 56, 59], b: 40 }, { t: [57, 60, 64], b: 45 },
+      { t: [55, 58, 62], b: 36 }, { t: [50, 53, 57], b: 38 } ] }
   }
 ];
 let thmIdx = -1;
@@ -405,7 +466,8 @@ function setThm(i) {
 
 let W, H, play = false, cam = 0, best = 0, nextY = 0, last = 0, px = null, L = false, R = false, mile = 0, gt = 0;
 const P = { x: 0, y: 0, vx: 0, vy: 0, r: 14 };
-let pl = [], pt = [], en = [], bj = [], ups = [], spawnX = 0, spdMile = 0, seenEn = false, boost = 0, seenUp = false;
+let pl = [], pt = [], en = [], bj = [], ups = [], spawnX = 0, spdMile = 0, seenEn = false, boost = 0, seenUp = false,
+    shld = 0, goldT = 0, seenShld = false, seenGold = false;
 
 // Fairer tuning:
 // - stronger bounce
@@ -419,6 +481,7 @@ const BSPD = 230;    // enemy bolt speed (medium)
 const ECHARGE = 1.5; // seconds an enemy charges before firing
 const ERANGE = 430;  // range in which enemies engage you
 const BOOST_DUR = 10;   // seconds of high bounce after grabbing a power-up
+const GOLD_DUR = 8;     // seconds all shelves turn golden (spring bounces)
 const BMULT = Math.sqrt(1.5); // velocity multiplier that yields exactly +50% bounce height (h ∝ v²)
 const A = 3200;
 const MV = 420;
@@ -557,6 +620,7 @@ function start() {
   pt = [];
   en = []; bj = []; ups = [];
   boost = 0; seenUp = false;
+  shld = 0; goldT = 0; seenShld = false; seenGold = false;
   spdMile = 0; seenEn = false;
   nextY = firstY;
 
@@ -600,6 +664,7 @@ function up(dt) {
 
   gt += dt;
   if (boost > 0) boost = Math.max(0, boost - dt);
+  if (goldT > 0) goldT = Math.max(0, goldT - dt);
 
   for (const p of pl) {                                    // animate special shelves
     const ox = p.x, oy = p.y;
@@ -677,7 +742,15 @@ function up(dt) {
     b.x += b.vx * dt; b.y += b.vy * dt;
     const sy = b.y - cam;
     if (sy < -80 || sy > H + 90 || b.x < -50 || b.x > W + 50) { bj.splice(i, 1); continue; }
-    if (Math.hypot(b.x - P.x, b.y - P.y) <= b.r + P.r) { end(); return; }
+    if (Math.hypot(b.x - P.x, b.y - P.y) <= b.r + P.r) {
+      if (shld > 0) {                                 // the shield eats the bolt
+        shld = 0;
+        bj.splice(i, 1);
+        burst(P.x, P.y, 20, '#7fd8ff');
+        sBlock();
+        hint('the shield shattered');
+      } else end();
+    }
   }
 
   // --- golden power-ups: high bounce for a while ---
@@ -686,10 +759,22 @@ function up(dt) {
     if (k.y - cam > H + 80) { ups.splice(i, 1); continue; }
     if (Math.hypot(k.x - P.x, k.y - P.y) <= k.r + P.r) {
       ups.splice(i, 1);
-      boost = BOOST_DUR;
-      burst(k.x, k.y, 18, '#ffd98a');
-      sPower();
-      if (!seenUp) { seenUp = true; hint('high bounce — 10s of extra height'); }
+      if (k.kind === 'shield') {
+        shld = 1;
+        burst(k.x, k.y, 18, '#7fd8ff');
+        sShield();
+        if (!seenShld) { seenShld = true; hint('shield — blocks one wisp bolt'); }
+      } else if (k.kind === 'gold') {
+        goldT = GOLD_DUR;
+        burst(k.x, k.y, 20, '#ffd27a');
+        sGold();
+        if (!seenGold) { seenGold = true; hint('golden shelves — everything bounces higher for ' + GOLD_DUR + 's'); }
+      } else {
+        boost = BOOST_DUR;
+        burst(k.x, k.y, 18, '#ffd98a');
+        sPower();
+        if (!seenUp) { seenUp = true; hint('high bounce — 10s of extra height'); }
+      }
     }
   }
 
@@ -710,7 +795,7 @@ function up(dt) {
         newBottom >= p.y
       ) {
         P.y = p.y - P.r;
-        const springy = p.type === 'spring';
+        const springy = p.type === 'spring' || goldT > 0;   // golden shelves launch like springs
         P.vy = (springy ? SB : B) * sp * (boost > 0 ? BMULT : 1);
         if (p.dx) P.x += p.dx;                 // carried by a drifting shelf
         burst(P.x, p.y, springy ? 16 : 10, springy ? '#ffd98a' : '#9fe8ff');
@@ -743,10 +828,11 @@ function dr() {
     const y = p.y - cam;
     if (y < -30 || y > H + 30) continue;
 
+    const golded = goldT > 0;
     x.save();
-    x.shadowColor = p.c;
-    x.shadowBlur = p.type === 'spring' ? 20 + Math.sin(gt * 6 + p.phase) * 8 : 16;
-    x.fillStyle = p.c;
+    x.shadowColor = golded ? '#ffd27a' : p.c;
+    x.shadowBlur = (golded || p.type === 'spring') ? 20 + Math.sin(gt * 6 + p.phase) * 8 : 16;
+    x.fillStyle = golded ? '#ffd98a' : p.c;
     x.fillRect(p.x, y, p.w, p.h);
 
     if (p.type !== 'normal') {                  // little glyphs so shelf types read at a glance
@@ -770,6 +856,10 @@ function dr() {
             i3 ? x.lineTo(p.x + line[i3][0], y + line[i3][1]) : x.moveTo(p.x + line[i3][0], y + line[i3][1]);
           x.stroke();
         }
+      }
+      if (golded && p.type !== 'spring') {              // golden shelves launch like springs
+        x.fillStyle = 'rgba(110,66,14,.5)';
+        tri(p.x + p.w / 2, y - 4, 0);
       }
     }
     x.restore();
@@ -815,26 +905,66 @@ function dr() {
     x.restore();
   }
 
-  // golden power-ups
+  // power-ups: gold diamond (high bounce), blue orb (shield), coin (golden shelves)
   for (const k of ups) {
     const y = k.y - cam;
     if (y < -30 || y > H + 40) continue;
     const r2 = k.r + Math.sin(gt * 5 + k.x) * 1.5;      // gentle pulse
     x.save();
-    x.shadowColor = '#ffd27a';
-    x.shadowBlur = 16 + Math.sin(gt * 5 + k.x) * 6;
-    x.fillStyle = '#ffe9b8';
-    x.beginPath();                                       // diamond
-    x.moveTo(k.x, y - r2);
-    x.lineTo(k.x + r2 * .7, y);
-    x.lineTo(k.x, y + r2);
-    x.lineTo(k.x - r2 * .7, y);
-    x.closePath();
-    x.fill();
-    x.fillStyle = 'rgba(255,255,255,.85)';               // inner spark
-    x.beginPath();
-    x.arc(k.x, y, 2.6, 0, 7);
-    x.fill();
+    if (k.kind === 'shield') {
+      x.shadowColor = '#4da6ff';
+      x.shadowBlur = 16 + Math.sin(gt * 5 + k.x) * 6;
+      const g2 = x.createRadialGradient(k.x, y - 2, 1, k.x, y, r2);
+      g2.addColorStop(0, '#fff');
+      g2.addColorStop(.55, '#9fdcff');
+      g2.addColorStop(1, '#1f5fb3');
+      x.fillStyle = g2;
+      x.beginPath();
+      x.arc(k.x, y, r2, 0, 7);
+      x.fill();
+      x.shadowBlur = 0;
+      x.strokeStyle = 'rgba(214,240,255,.9)';           // barrier rim
+      x.lineWidth = 2;
+      x.beginPath();
+      x.arc(k.x, y, r2 + 3.5, 0, 7);
+      x.stroke();
+    } else if (k.kind === 'gold') {
+      x.shadowColor = '#ffd27a';
+      x.shadowBlur = 16 + Math.sin(gt * 5 + k.x) * 6;
+      const g3 = x.createRadialGradient(k.x, y - 2, 1, k.x, y, r2);
+      g3.addColorStop(0, '#fff8e0');
+      g3.addColorStop(.6, '#ffd98a');
+      g3.addColorStop(1, '#b97a1c');
+      x.fillStyle = g3;
+      x.beginPath();
+      x.arc(k.x, y, r2, 0, 7);
+      x.fill();
+      x.shadowBlur = 0;
+      x.strokeStyle = 'rgba(120,74,16,.8)';             // coin rim
+      x.lineWidth = 2;
+      x.beginPath();
+      x.arc(k.x, y, r2 - 3.5, 0, 7);
+      x.stroke();
+      x.fillStyle = 'rgba(255,255,255,.9)';
+      x.beginPath();
+      x.arc(k.x, y, 2.4, 0, 7);
+      x.fill();
+    } else {
+      x.shadowColor = '#ffd27a';
+      x.shadowBlur = 16 + Math.sin(gt * 5 + k.x) * 6;
+      x.fillStyle = '#ffe9b8';
+      x.beginPath();                                     // diamond
+      x.moveTo(k.x, y - r2);
+      x.lineTo(k.x + r2 * .7, y);
+      x.lineTo(k.x, y + r2);
+      x.lineTo(k.x - r2 * .7, y);
+      x.closePath();
+      x.fill();
+      x.fillStyle = 'rgba(255,255,255,.85)';             // inner spark
+      x.beginPath();
+      x.arc(k.x, y, 2.6, 0, 7);
+      x.fill();
+    }
     x.restore();
   }
 
@@ -876,6 +1006,16 @@ function dr() {
     x.lineWidth = 2.5;
     x.beginPath();
     x.arc(P.x, y, P.r + 6, -Math.PI / 2, -Math.PI / 2 + (boost / BOOST_DUR) * Math.PI * 2);
+    x.stroke();
+  }
+
+  if (shld > 0) {                                        // barrier ring while shielded
+    x.strokeStyle = `rgba(127,216,255,${(.55 + Math.sin(gt * 4) * .2).toFixed(3)})`;
+    x.lineWidth = 3;
+    x.shadowColor = '#4da6ff';
+    x.shadowBlur = 18;
+    x.beginPath();
+    x.arc(P.x, y, P.r + 10, 0, 7);
     x.stroke();
   }
   x.restore();
