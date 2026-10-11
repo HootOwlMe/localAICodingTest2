@@ -76,14 +76,14 @@ Every 2000 depth the scene, lighting, and music shift to a new theme:
 6. **the Frostbound Keep** — icy pale blue-silver; a cold, slow minor drift (64 BPM)
 7. **the Ashen Hollow** — monochrome ash and silver; the quietest layer (58 BPM)
 
-…then it loops back to the Keeper’s Room, forever.
+…then it loops back to the Keeper’s Room, and continues the loop forever.
 
 ## Endless difficulty
 
 The climb never stops scaling:
 
 - **Speed is uncapped.** Everything runs +16% faster per 500-depth tier up to depth 3000 (+80%), then keeps growing at a gentler +4% per tier — forever. A "the tide quickens" hint marks each step-up.
-- **Gaps widen** with depth (capped) and shelves **narrow slowly**, reaching their minimum width only around depth 580 so the early-mid climb stays comfortable.
+- **Gaps widen** with depth (capped) and shelves **narrow slowly**, reaching their minimum width only around depth 580 so the early climb stays comfortable.
 - Drifting, bobbing, spring, and cracked shelves all become more common as you descend.
 
 ## Under the hood
@@ -95,13 +95,13 @@ Everything lives in `index.html`:
 | Rendering | `<canvas>` 2D, `requestAnimationFrame` loop with delta-time physics (clamped to 35 ms) — damping is time-scaled so the feel is identical at 60/144/240 Hz |
 | Physics | Gravity + terminal velocity for falls; fixed impulse on landing; spring-like steering toward the pointer |
 | Level gen | Procedural platforms with capped vertical gaps (66–92 px baseline) and horizontal offsets bounded by your bounce reach |
-| Music | Generative ambient engine — each of the seven themes brings its own tempo, waveform, volume, and four-chord progression; arpeggios run through a feedback delay for space. All synthesized, nothing recorded |
+| Music | Procedural ambient engine — each of the seven themes brings its own tempo, waveform, volume, and four-chord progression; arpeggios run through a feedback delay for space. All synthesized, nothing recorded |
 | SFX | Bounce, spring launch, milestone chime, speed-up shimmer, theme shift, power-up grabs, shield block/shatter, wisp shots, start fanfare, loss sweep — all short oscillator envelopes |
 | Scene | The room (orb, light beam, rotating sphere, silhouette) is pure CSS — gradients, blur, and keyframe animations on top of the canvas; every theme swaps its palette live |
 
 ## Tuning
 
-The game feel lives in one block near the top of the `<script>`:
+The game's feel lives in one block near the top of the `<script>`:
 
 ```js
 const G = 1300;   // gravity
