@@ -272,7 +272,7 @@ function noteType(p) {
 // stationary ward wisps appear on shelves past depth 1000 and fire bolts at you
 function maybeEnemy(p) {
   const d = -p.y / 12;
-  if (p.type === 'normal' && d >= 1000 && Math.random() < .2) {
+  if (p.type === 'normal' && d >= 1000 && Math.random() < .25) {   // 25% of deep shelves host a wisp
     en.push({ x: p.x + rn(16, p.w - 16), y: p.y - 13, r: 9, st: 'idle', cd: rn(.4, 1.4), ch: 0 });
     if (!seenEn) { seenEn = true; hint('ward wisps fire back — keep climbing'); }
   }
@@ -477,11 +477,11 @@ let pl = [], pt = [], en = [], bj = [], ups = [], spawnX = 0, spdMile = 0, seenE
 const G = 1300;
 const B = -700;
 const SB = -1150;   // "spring" shelves launch much higher than a normal bounce
-const BSPD = 230;    // enemy bolt speed (medium)
+const BSPD = 230;    // base enemy bolt speed; scales with depth to a 2x cap
 const ECHARGE = 1.5; // seconds an enemy charges before firing
 const ERANGE = 430;  // range in which enemies engage you
 const BOOST_DUR = 10;   // seconds of high bounce after grabbing a power-up
-const GOLD_DUR = 8;     // seconds all shelves turn golden (spring bounces)
+const GOLD_DUR = 5;     // seconds all shelves turn golden (spring bounces)
 const BMULT = Math.sqrt(1.5); // velocity multiplier that yields exactly +50% bounce height (h ∝ v²)
 const A = 3200;
 const MV = 420;
@@ -508,7 +508,7 @@ function diffFor(y) {
   return {
     gapMin: GAP_MIN + Math.min(46, d * .55),               // gaps widen
     gapMax: GAP_MAX + Math.min(70, d * .85),
-    pw:     Math.max(74, PW - Math.min(58, (d - 1) * .9)), // shelves narrow
+    pw:     Math.max(74, PW - Math.min(58, (d - 1) * .1)), // shelves narrow slowly now
     moveP:  Math.min(.34, Math.max(0, (d - 5) / 36)),      // drifting shelves from depth ~5
     liftP:  Math.min(.10, Math.max(0, (d - 48) / 90)),     // rising/falling shelves, deep down
     springP:d < 2 ? 0 : Math.min(.14, .05 + d * .0015),    // high-bounce shelves
@@ -659,6 +659,13 @@ function end() {
   m.textContent = 'the tide keeps what you remember';
 }
 
+// speed multiplier grows with depth: +16% per 500-depth tier until depth 3000
+// (+80%), then keeps growing uncapped at a gentler +4% per tier forever
+function spdFor(d) {
+  const t = d / 500;
+  return t <= 6 ? 1 + Math.min(.8, t * .16) : 1.8 + (t - 6) * .04;
+}
+
 function up(dt) {
   if (!play) return;
 
@@ -673,10 +680,11 @@ function up(dt) {
     p.prevX = ox; p.prevY = oy; p.dx = p.x - ox; p.dy = p.y - oy;
   }
 
-  // every 500 depth everything gets faster (+16% per tier, capped at +80%)
+  // every 500 depth everything gets faster (+16% per tier to depth 3000,
+  // then a slower +4% per tier that never stops)
   const tier = Math.floor(best / 500);
   if (tier > spdMile) { spdMile = tier; hint('the tide quickens'); sSpeed(); }
-  const sp = 1 + Math.min(.8, tier * .16);
+  const sp = spdFor(best);
 
   const py = P.y;
   let ax = (L ? -A * sp : 0) + (R ? A * sp : 0);
@@ -685,7 +693,8 @@ function up(dt) {
     ax += Math.max(-A * sp, Math.min(A * sp, (px - P.x) * 18));
   }
 
-  P.vx = Math.max(-MV, Math.min(MV, (P.vx + ax * dt) * .92));
+  // frame-rate-independent damping: identical feel at 60/144/240 Hz
+  P.vx = Math.max(-MV, Math.min(MV, (P.vx + ax * dt) * Math.pow(.92, dt * 60)));
   P.x += P.vx * dt;
 
   if (P.x < -P.r) P.x = W + P.r;
@@ -732,7 +741,8 @@ function up(dt) {
     } else if ((e.ch += dt / ECHARGE) >= 1) {
       e.st = 'idle'; e.cd = rn(1.4, 2.6); e.ch = 0;
       const a = Math.atan2(dy2, dx2);
-      bj.push({ x: e.x, y: e.y - 4, vx: Math.cos(a) * BSPD, vy: Math.sin(a) * BSPD, r: 5 });
+      const bspd = Math.min(BSPD * 2, BSPD + (-e.y / 12 - 1000) * .1); // bolts quicken to a 2x cap
+      bj.push({ x: e.x, y: e.y - 4, vx: Math.cos(a) * bspd, vy: Math.sin(a) * bspd, r: 5 });
       sShot();
     }
   }
