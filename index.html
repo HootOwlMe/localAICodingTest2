@@ -97,6 +97,8 @@ const x = c.getContext('2d');
 const u = document.getElementById('u');
 const m = document.getElementById('m');
 const startBtn = document.getElementById('startBtn');
+const elF = scene.querySelector('.f'), elW = scene.querySelector('.w'), elB = scene.querySelector('.b'),
+      elSp = scene.querySelector('.sp'), elK = scene.querySelector('.k'), qEl = scene.querySelector('.q');
 
 // ---------- Audio: Web Audio API, no external files ----------
 let AC = null, sfxOut = null, musicVol = null, musicOn = true;
@@ -214,12 +216,27 @@ function sMile() {
   tone(1319, 1319, t + .12, .4, 'sine', .1);
 }
 
+function sTheme() {
+  if (!AC) return;
+  const t = AC.currentTime;                     // watery swell on entering new waters
+  tone(262, 524, t, .8, 'sine', .12);
+  tone(392, 784, t + .1, .7, 'triangle', .09);
+}
+
+function sCrack() {
+  if (!AC) return;
+  const t = AC.currentTime;                     // shelf shatters
+  tone(300, 90, t, .22, 'square', .2);
+  tone(1400, 500, t + .01, .1, 'triangle', .1);
+}
+
 // ---------- hints for new shelf types ----------
 const HINT = '← → steer · R restart · M music';
 const HINTS = {
   move:   'a shelf drifts left & right — time your bounce',
   spring: 'golden shelves fling you higher',
-  lift:   'this shelf rises and falls'
+  lift:   'this shelf rises and falls',
+  crack:  'that shelf is cracked — it breaks after one bounce'
 };
 let seen = {}, hintT = 0;
 function hint(msg) {
@@ -251,25 +268,26 @@ function maybePowerup(p) {
   }
 }
 
-// --- background music: generative ambient loop (Am - F - C - G) ---
-const EIGHTH = 60 / 74 / 2;
-const CHORDS = [
+// --- background music: generative ambient loop (progression changes with the depth theme) ---
+let EIGHTH = 60 / 74 / 2;
+let CHORDS = [
   { t: [57, 60, 64], b: 45 },
   { t: [53, 57, 60], b: 41 },
   { t: [55, 60, 64], b: 48 },
   { t: [55, 59, 62], b: 43 }
 ];
+let PADWAVE = 'triangle', PADVOL = .05, SPARKWAVE = 'sine';
 const MUS = { step: 0, next: 0, started: false, bus: null };
 
 function pad(notes, t) {
   const dur = EIGHTH * 8;
   for (const n of notes) {
     const o = AC.createOscillator(), g = AC.createGain();
-    o.type = 'triangle';
+    o.type = PADWAVE;
     o.frequency.value = mtof(n);
     g.gain.setValueAtTime(0, t);
-    g.gain.linearRampToValueAtTime(.05, t + 1.2);
-    g.gain.setValueAtTime(.05, t + dur - 1.4);
+    g.gain.linearRampToValueAtTime(PADVOL, t + 1.2);
+    g.gain.setValueAtTime(PADVOL, t + dur - 1.4);
     g.gain.linearRampToValueAtTime(0, t + dur);
     o.connect(g);
     g.connect(MUS.bus);
@@ -286,7 +304,7 @@ function musStep(step, t) {
   } else if (step % 2 === 0) {
     const pool = [ch.t[0] + 12, ch.t[1] + 12, ch.t[2] + 12, ch.t[2] + 24];
     const n = pool[(rn(0, 3)) | 0];
-    tone(mtof(n), mtof(n), t, .5, 'sine', .07, MUS.bus);
+    tone(mtof(n), mtof(n), t, .5, SPARKWAVE, .07, MUS.bus);
   }
 }
 
@@ -311,6 +329,79 @@ function setMusic(on) {
 }
 
 mBtn.addEventListener('click', () => { audioInit(); setMusic(!musicOn); mBtn.blur(); });
+
+// ---------- depth themes: every 2000 depth, new waters + a new synth loop ----------
+const THEMES = [
+  {
+    name: 'the Keeper\'s Room',
+    q: 'The memory turned, keeping every moment from the tide.',
+    s:  'radial-gradient(circle at 65% 40%,#13203a,#070b18 70%)',
+    f:  'radial-gradient(circle at 30% 35%,rgba(255,255,255,.06),transparent 35%),radial-gradient(circle at 70% 60%,rgba(180,220,255,.05),transparent 40%)',
+    w:  'radial-gradient(#ffd98a,#b97a1c 62%,transparent)', ws: '0 0 80px rgba(255,190,90,.4)',
+    b:  'linear-gradient(to left,rgba(255,214,138,.22),transparent)',
+    sp: 'conic-gradient(#0b2a5a,#7fd8ff,#123a7a,#bfefff,#061a3c)', ss: '0 0 80px rgba(127,216,255,.35), inset 0 0 60px rgba(255,255,255,.25)',
+    k:  'linear-gradient(#0a0f1e,#1c2742 55%,transparent)',
+    mus: { tempo: 74, padWave: 'triangle', padVol: .05, sparkWave: 'sine', prog: [
+      { t: [57, 60, 64], b: 45 }, { t: [53, 57, 60], b: 41 },
+      { t: [55, 60, 64], b: 48 }, { t: [55, 59, 62], b: 43 } ] }
+  },
+  {
+    name: 'the Ember Vault',
+    q: 'Embers drift where the old fire slept.',
+    s:  'radial-gradient(circle at 65% 40%,#3a1813,#180708 70%)',
+    f:  'radial-gradient(circle at 30% 35%,rgba(255,180,120,.07),transparent 35%),radial-gradient(circle at 70% 60%,rgba(255,140,90,.05),transparent 40%)',
+    w:  'radial-gradient(#ffb36b,#a83c14 62%,transparent)', ws: '0 0 80px rgba(255,120,60,.5)',
+    b:  'linear-gradient(to left,rgba(255,150,80,.25),transparent)',
+    sp: 'conic-gradient(#5a0b14,#ff9d5c,#7a1230,#ffd2a8,#3c060f)', ss: '0 0 80px rgba(255,140,80,.4), inset 0 0 60px rgba(255,255,255,.2)',
+    k:  'linear-gradient(#1e0a0a,#42271c 55%,transparent)',
+    mus: { tempo: 84, padWave: 'sawtooth', padVol: .036, sparkWave: 'triangle', prog: [
+      { t: [56, 60, 63], b: 37 }, { t: [57, 60, 64], b: 45 },
+      { t: [52, 56, 59], b: 40 }, { t: [55, 59, 62], b: 47 } ] }
+  },
+  {
+    name: 'the Neon Tide',
+    q: 'A neon tide rolls through the silent vaults.',
+    s:  'radial-gradient(circle at 65% 40%,#241340,#0b0718 70%)',
+    f:  'radial-gradient(circle at 30% 35%,rgba(200,150,255,.07),transparent 35%),radial-gradient(circle at 70% 60%,rgba(120,220,255,.05),transparent 40%)',
+    w:  'radial-gradient(#c9a2ff,#5c1ca8 62%,transparent)', ws: '0 0 80px rgba(170,110,255,.5)',
+    b:  'linear-gradient(to left,rgba(180,140,255,.24),transparent)',
+    sp: 'conic-gradient(#1a0b3c,#ff6bd6,#30127a,#9db8ff,#0f0630)', ss: '0 0 80px rgba(255,107,214,.35), inset 0 0 60px rgba(255,255,255,.2)',
+    k:  'linear-gradient(#120a1e,#271c42 55%,transparent)',
+    mus: { tempo: 92, padWave: 'square', padVol: .026, sparkWave: 'triangle', prog: [
+      { t: [54, 57, 61], b: 42 }, { t: [50, 54, 58], b: 38 },
+      { t: [57, 60, 64], b: 45 }, { t: [52, 56, 59], b: 40 } ] }
+  },
+  {
+    name: 'the Verdant Deep',
+    q: 'Green light breathes in the drowned garden.',
+    s:  'radial-gradient(circle at 65% 40%,#12352b,#071812 70%)',
+    f:  'radial-gradient(circle at 30% 35%,rgba(160,255,200,.06),transparent 35%),radial-gradient(circle at 70% 60%,rgba(120,255,180,.05),transparent 40%)',
+    w:  'radial-gradient(#9dffc9,#1ca85c 62%,transparent)', ws: '0 0 80px rgba(110,255,180,.4)',
+    b:  'linear-gradient(to left,rgba(140,255,190,.2),transparent)',
+    sp: 'conic-gradient(#0b3a24,#6bffcf,#127a4a,#c8ffe6,#06301f)', ss: '0 0 80px rgba(107,255,207,.35), inset 0 0 60px rgba(255,255,255,.2)',
+    k:  'linear-gradient(#0a1e14,#1c4229 55%,transparent)',
+    mus: { tempo: 78, padWave: 'triangle', padVol: .05, sparkWave: 'sine', prog: [
+      { t: [50, 53, 57], b: 38 }, { t: [46, 50, 53], b: 34 },
+      { t: [53, 57, 60], b: 41 }, { t: [48, 52, 55], b: 36 } ] }
+  }
+];
+let thmIdx = -1;
+
+function setThm(i) {
+  const T = THEMES[i % THEMES.length];
+  thmIdx = i % THEMES.length;
+  scene.style.background = T.s;
+  elF.style.background = T.f;
+  elW.style.background = T.w; elW.style.boxShadow = T.ws;
+  elB.style.background = T.b;
+  elSp.style.background = T.sp; elSp.style.boxShadow = T.ss;
+  elK.style.background = T.k;
+  qEl.textContent = T.q;
+  EIGHTH = 60 / T.mus.tempo / 2;
+  CHORDS = T.mus.prog;
+  PADWAVE = T.mus.padWave; PADVOL = T.mus.padVol; SPARKWAVE = T.mus.sparkWave;
+  MUS.step = 0;
+}
 
 let W, H, play = false, cam = 0, best = 0, nextY = 0, last = 0, px = null, L = false, R = false, mile = 0, gt = 0;
 const P = { x: 0, y: 0, vx: 0, vy: 0, r: 14 };
@@ -358,6 +449,7 @@ function diffFor(y) {
     moveP:  Math.min(.34, Math.max(0, (d - 5) / 36)),      // drifting shelves from depth ~5
     liftP:  Math.min(.10, Math.max(0, (d - 48) / 90)),     // rising/falling shelves, deep down
     springP:d < 2 ? 0 : Math.min(.14, .05 + d * .0015),    // high-bounce shelves
+    crackP: d < 500 ? 0 : Math.min(.18, .06 + (d - 500) * .0002), // fragile shelves deep down
   };
 }
 
@@ -367,6 +459,7 @@ function planType(y) {
   if (r < d.springP) return 'spring';
   if (r < d.springP + d.moveP + d.liftP)
     return Math.random() < d.liftP / (d.moveP + d.liftP || 1) ? 'lift' : 'move';
+  if (r < d.springP + d.moveP + d.liftP + d.crackP) return 'crack';
   return 'normal';
 }
 
@@ -379,14 +472,26 @@ function pf(x, y, type) {
     normal: `hsl(${rn(190, 215)} 70% 62%)`,
     move:   `hsl(${rn(158, 184)} 72% 56%)`,
     lift:   `hsl(${rn(272, 300)} 72% 64%)`,
-    spring: `hsl(${rn(40, 52)} 96% 62%)`
+    spring: `hsl(${rn(40, 52)} 96% 62%)`,
+    crack:  `hsl(${rn(208, 228)} 30% 52%)`
   }[t];
+
+  let cks = null;                              // fissure lines so it reads at a glance
+  if (t === 'crack') {
+    cks = [];
+    for (let i = 0; i < 3; i++) {
+      const pts = [], cxp = rn(12, w - 12);
+      for (let s2 = 0; s2 <= 4; s2++) pts.push([cxp + rn(-7, 7), (s2 / 4) * PH]);
+      cks.push(pts);
+    }
+  }
 
   const p = {
     x: x - w / 2, y, w, h: PH, c: col, type: t,
     baseX: x - w / 2, baseY: y,
     range: 0, vrange: 0, speed: 0, phase: rn(0, Math.PI * 2),
-    prevX: x - w / 2, prevY: y, dx: 0, dy: 0
+    prevX: x - w / 2, prevY: y, dx: 0, dy: 0,
+    cks
   };
   if (t === 'move') { p.range = rn(45, 105); p.speed = rn(.9, 1.7); }
   if (t === 'lift') { p.vrange = rn(26, 48); p.speed = rn(1.1, 1.9); }
@@ -532,6 +637,10 @@ function up(dt) {
   u.textContent = 'DEPTH ' + best;
   if (Math.floor(best / 100) > mile) { mile = Math.floor(best / 100); sMile(); }
 
+  // every 2000 depth the waters — and the music — shift to a new theme
+  const ti = Math.floor(best / 2000) % THEMES.length;
+  if (ti !== thmIdx) { setThm(ti); sTheme(); hint('the waters shift: ' + THEMES[ti].name); }
+
   while (nextY > cam - H * 1.3) {
     const dd = diffFor(nextY);
     nextY -= rn(dd.gapMin, dd.gapMax);
@@ -585,7 +694,8 @@ function up(dt) {
   }
 
   if (P.vy > 0) {
-    for (const p of pl) {
+    for (let pi = 0; pi < pl.length; pi++) {
+      const p = pl[pi];
       const sy = p.y - cam;
       if (sy < -40 || sy > H + 40) continue;
 
@@ -605,6 +715,11 @@ function up(dt) {
         if (p.dx) P.x += p.dx;                 // carried by a drifting shelf
         burst(P.x, p.y, springy ? 16 : 10, springy ? '#ffd98a' : '#9fe8ff');
         if (springy) sSpring(); else sBounce();
+        if (p.type === 'crack') {              // it shatters after this one bounce
+          pl.splice(pi, 1);
+          burst(P.x, p.y + PH / 2, 14, '#8fa3c8');
+          sCrack();
+        }
         break;
       }
     }
@@ -646,6 +761,15 @@ function dr() {
       } else if (p.type === 'lift') {
         x.fillStyle = 'rgba(6,12,26,.55)';
         tri(cx, y - 4, 0); tri(cx, y + PH + 4, 2);
+      } else if (p.type === 'crack') {
+        x.strokeStyle = 'rgba(8,12,22,.8)';
+        x.lineWidth = 1.6;
+        for (const line of p.cks) {
+          x.beginPath();
+          for (let i3 = 0; i3 < line.length; i3++)
+            i3 ? x.lineTo(p.x + line[i3][0], y + line[i3][1]) : x.moveTo(p.x + line[i3][0], y + line[i3][1]);
+          x.stroke();
+        }
       }
     }
     x.restore();
@@ -756,6 +880,8 @@ function dr() {
   }
   x.restore();
 }
+
+setThm(0);
 
 function loop(t) {
   const dt = Math.min((t - last) / 1000, .035);
